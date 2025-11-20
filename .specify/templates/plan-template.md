@@ -31,7 +31,14 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- [ ] 빌드 재현성 (Principle I): 모든 빌드가 Ubuntu 24.04 (headless)에서 재현 가능한가?
+- [ ] 컴포넌트 및 버전 관리 (Principle II): 사용될 모든 RISC-V 툴체인 및 컴포넌트 (U-Boot, OpenSBI, Linux Kernel, Buildroot)의 버전이 명시되었는가? 공식 또는 mainline에 가까운 버전을 사용하는가?
+- [ ] 타깃 아키텍처 지원 (Principle III): QEMU virt RISC-V 64비트 머신을 기본 타깃으로 하며, 향후 확장성을 고려한 설계인가?
+- [ ] 모듈화된 컴포넌트 관리 (Principle IV): 각 컴포넌트(u-boot SPL, OpenSBI, U-Boot, Linux Kernel, Buildroot)가 독립적인 설정 파일과 빌드 스크립트를 가지는가?
+- [ ] 일관된 개발 환경 (Principle V): 크로스 컴파일 환경 설정이 스크립트화되어 제공되는가?
+- [ ] 디버깅 및 성능 관리 (Principle VI): 디버깅 옵션 제공 여부 및 릴리즈 빌드 시 성능 저하 최소화 방안이 고려되었는가?
+- [ ] 문서 및 코드 동기화 (Principle VII): Spec, Plan, Tasks 문서와 실제 스크립트/코드의 동기화 계획이 수립되었는가? 큰 변경 전 Spec 업데이트 원칙을 따르는가?
+- [ ] 라이선스 및 SBOM 관리 (Principle VIII): 라이선스 정보, SBOM, 오픈소스 컴포넌트 버전 문서화 계획이 포함되었는가?
 
 ## Project Structure
 
