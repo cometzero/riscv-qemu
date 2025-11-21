@@ -1,0 +1,15 @@
+[submodule "sources/qemu"]
+	path = sources/qemu
+	url = https://gitlab.com/qemu-project/qemu.git
+[submodule "sources/opensbi"]
+	path = sources/opensbi
+	url = https://github.com/riscv-software-src/opensbi.git
+[submodule "sources/buildroot"]
+	path = sources/buildroot
+	url = https://github.com/buildroot/buildroot.git
+[submodule "sources/u-boot"]
+	path = sources/u-boot
+	url = https://source.denx.de/u-boot/u-boot.git
+[submodule "sources/linux"]
+	path = sources/linux
+	url = https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
