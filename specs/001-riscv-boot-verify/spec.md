@@ -74,6 +74,63 @@ QEMU를 부팅하여 busybox 셸에서 새 프로그램을 실행하여 테스�
     **Buildroot가** 다시 빌드되고 QEMU가 부팅되면, **사용자는** busybox 셸에서
     "hello_riscv"를 실행하고 출력을 관찰할 수 있습니다.
 
+---
+
+### 사용자 스토리 4 - QEMU 소스 빌드 환경 설정 (우선순위: P1)
+
+개발자는 QEMU 소스 빌드에 필요한 모든 의존성 패키지를 쉽게 설치하고, 빌드 환경을 설정할 수 있어야 한다.
+
+**Why this priority**: QEMU를 소스로 빌드하기 위한 가장 기본적인 선행 조건이다. 이 단계가 없으면 이후 모든 작업이 불가능하다.
+
+**Independent Test**: `scripts/setup-env.sh` 스크립트를 실행하여 필요한 패키지가 모두 설치되고, QEMU 빌드에 필요한 환경 변수가 설정되는지 확인할 수 있다.
+
+**Acceptance Scenarios**:
+
+1.  **Given** Ubuntu 24.04 headless 서버 환경에서, **When** `scripts/setup-env.sh`를 실행하면, **Then** QEMU 빌드에 필요한 모든 기본 패키지(예: `libglib2.0-dev`, `libpixman-1-dev`, `libfdt-dev`, `zlib1g-dev`, `ninja-build` 등)가 성공적으로 설치된다.
+2.  **Given** 모든 의존성 패키지가 설치된 상태에서, **When** `scripts/toolchain-env.sh`를 실행하면, **Then** QEMU 빌드 및 실행에 필요한 환경 변수(예: `PATH`에 QEMU 빌드 디렉토리 추가)가 올바르게 설정된다.
+
+---
+
+### 사용자 스토리 5 - QEMU 소스 다운로드 및 초기 설정 (우선순위: P1)
+
+개발자는 프로젝트 저장소 내에 QEMU 소스 코드를 쉽게 다운로드하고, 초기 설정(configure)을 수행할 수 있어야 한다.
+
+**Why this priority**: 실제 QEMU 빌드를 시작하기 위한 필수 단계이며, 소스 기반 빌드의 핵심이다.
+
+**Independent Test**: `scripts/get-qemu-source.sh`를 실행하여 QEMU 소스가 `sources/qemu` 디렉토리에 클론되고, `scripts/configure-qemu.sh`를 실행하여 빌드 디렉토리(`build/qemu`)에 QEMU가 성공적으로 설정(configure)되는지 확인할 수 있다.
+
+**Acceptance Scenarios**:
+
+1.  **Given** Git이 설정된 개발 환경에서, **When** `scripts/get-qemu-source.sh`를 실행하면, **Then** 최신 또는 특정 버전의 QEMU 소스 코드가 `sources/qemu` 디렉토리에 성공적으로 클론된다.
+2.  **Given** QEMU 소스 코드가 `sources/qemu`에 있고, 빌드 환경이 설정된 상태에서, **When** `scripts/configure-qemu.sh`를 실행하면, **Then** `build/qemu` 디렉토리에 QEMU 빌드를 위한 설정 파일이 오류 없이 생성된다.
+3.  **Given** QEMU 소스 코드 클론 후, **When** 특정 커밋 해시로 고정하는 작업을 수행하면, **Then** `sources/qemu` submodule의 버전이 안정적으로 관리된다.
+
+---
+
+### 사용자 스토리 6 - QEMU 소스 빌드 및 설치 (우선순위: P1)
+
+개발자는 설정된 QEMU 소스 코드를 컴파일하고, 지정된 디렉토리에 설치할 수 있어야 한다.
+
+**Why this priority**: QEMU를 소스로부터 직접 사용하는 궁극적인 목표이다.
+
+**Independent Test**: `scripts/build-qemu.sh` 스크립트를 실행하여 QEMU가 `build/qemu` 디렉토리에서 성공적으로 빌드되고, 지정된 `build/toolchain/qemu` (또는 유사한) 디렉토리에 바이너리가 설치되는지 확인할 수 있다.
+
+**Acceptance Scenarios**:
+
+1.  **Given** QEMU 소스 코드가 설정된 상태에서, **When** `scripts/build-qemu.sh`를 실행하면, **Then** QEMU 바이너리 및 관련 파일들이 `build/qemu` 디렉토리 내에서 성공적으로 컴파일된다.
+2.  **Given** QEMU가 성공적으로 빌드된 상태에서, **When** `scripts/install-qemu.sh` (또는 빌드 스크립트 내 포함)를 실행하면, **Then** QEMU 실행 파일 (`qemu-system-riscv64` 등)이 `build/toolchain/qemu/bin` (또는 유사한) 경로에 설치된다.
+3.  **Given** QEMU가 설치된 상태에서, **When** 설치된 QEMU 바이너리(`build/toolchain/qemu/bin/qemu-system-riscv64`)를 실행하면, **Then** `qemu-system-riscv64 --version` 명령어가 정상적으로 실행되고 버전 정보를 출력한다.
+
+---
+
+### Edge Cases
+
+-   QEMU 소스 다운로드 실패 시 (`git clone` 실패): 사용자에게 명확한 오류 메시지 및 재시도 방법 안내.
+-   의존성 패키지 설치 실패 시: 어떤 패키지가 실패했는지 명확히 알리고 수동 설치 가이드 제공.
+-   QEMU configure 또는 빌드 실패 시: 빌드 로그(`build/logs/qemu_build.log`)를 통해 오류 원인을 쉽게 파악할 수 있도록 상세 로그 출력.
+-   특정 QEMU 버전이 필요한 경우: `scripts/get-qemu-source.sh`에서 특정 태그나 커밋 해시를 지정할 수 있는 옵션 제공.
+-   기존 시스템 QEMU와 빌드된 QEMU 간의 PATH 충돌: `toolchain-env.sh`에서 빌드된 QEMU 경로를 `PATH`에 우선하도록 관리하거나, 특정 스크립트에서만 사용하도록 경로를 명시.
+
 ## 요구 사항 *(필수)*
 
 ### 기능 요구 사항
@@ -86,8 +143,14 @@ QEMU를 부팅하여 busybox 셸에서 새 프로그램을 실행하여 테스�
     출력 확인을 가능하게 해야 합니다.
 -   **FR-004**: 시스템은 간단한 테스트 프로그램(예: "hello_riscv")을 Buildroot에서 생성된
     루트 파일 시스템에 포함하고 QEMU 환경 내에서 실행할 수 있는 메커니즘을 제공해야 합니다.
+-   **FR-005**: 시스템은 QEMU 소스 코드(upstream)를 `sources/qemu` 디렉토리에 다운로드할 수 있어야 한다.
+-   **FR-006**: 시스템은 `sources/qemu`에 다운로드된 QEMU 소스를 사용하여 `build/qemu` 디렉토리에서 out-of-tree 방식으로 빌드할 수 있어야 한다.
+-   **FR-007**: 시스템은 `build/qemu`에서 빌드된 QEMU 바이너리(예: `qemu-system-riscv64`)를 `build/toolchain/qemu/bin`과 같은 프로젝트 내 특정 경로에 설치할 수 있어야 한다.
+-   **FR-008**: 시스템은 QEMU 빌드에 필요한 모든 OS 수준의 의존성 패키지를 자동으로 설치하는 스크립트를 제공해야 한다.
+-   **FR-009**: 시스템은 빌드된 QEMU 바이너리를 사용하여 RISC-V QEMU virt 머신을 실행할 수 있어야 한다.
+-   **FR-010**: 시스템은 QEMU 소스 코드의 특정 버전(커밋 해시)을 고정하고 관리할 수 있어야 한다.
 
-## 주요 엔티티 *(기능에 데이터가 포함된 경우 포함)*
+### 주요 엔티티 *(기능에 데이터가 포함된 경우 포함)*
 
 -   **부트 체인 구성 요소**: RISC-V QEMU 가상 머신의 부트 시퀀스를 함께 구성하는 개별
     소프트웨어 요소(U-Boot SPL, OpenSBI, U-Boot, Linux Kernel, Buildroot/rootfs).
@@ -95,21 +158,25 @@ QEMU를 부팅하여 busybox 셸에서 새 프로그램을 실행하여 테스�
 -   **QEMU 가상 머신**: Ubuntu 호스트에서 실행되는 에뮬레이트된 RISC-V 하드웨어 환경.
 -   **루트 파일 시스템 (initramfs)**: Linux 커널이 부팅되고 사용자 공간을 설정하는 데
     필요한 기본 도구 및 애플리케이션(예: busybox) 세트를 포함하는 초기 램디스크.
+-   **QEMU Source**: RISC-V QEMU virt 머신 에뮬레이션을 위한 QEMU 오픈소스 프로젝트의 소스 코드. `sources/qemu` 디렉토리에 위치한다.
+-   **QEMU Build Artifacts**: QEMU 소스를 컴파일하여 생성된 바이너리 파일 및 중간 빌드 파일들. `build/qemu` 디렉토리에 위치한다. 주요 산출물은 `qemu-system-riscv64` 실행 파일이다.
+-   **QEMU Installation Path**: 빌드된 QEMU 실행 파일이 최종적으로 위치할 프로젝트 내 경로. 예를 들어 `build/toolchain/qemu/bin`
 
 ## 프로젝트 구조
 
 ### 소스 디렉터리 구조(Source Tree Layout)
 
-본 프로젝트의 최상위 Git 저장소는 여러 오픈 소스 컴포넌트(U-Boot, OpenSBI, Linux Kernel, Buildroot 등)를 Git submodule로 통합하며, 소스 코드는 다음과 같은 디렉터리 구조를 기본으로 한다.
+본 프로젝트의 최상위 Git 저장소는 여러 오픈 소스 컴포넌트(U-Boot, OpenSBI, Linux Kernel, Buildroot, QEMU 등)를 Git submodule로 통합하며, 소스 코드는 다음과 같은 디렉터리 구조를 기본으로 한다.
 
 - `<repo_root>/`
     - `sources/`
+        - `qemu/` : QEMU 소스 (git submodule)
         - `u-boot/` : U-Boot 소스 (git submodule)
         - `opensbi/` : OpenSBI 소스 (git submodule)
         - `linux/` : Linux Kernel 소스 (git submodule)
         - `buildroot/` : Buildroot 소스 (git submodule)
     - `configs/`
-        - 각 컴포넌트(u-boot, opensbi, linux, buildroot)에 대한 기본 설정 파일, defconfig, 패치 등을 관리
+        - 각 컴포넌트(u-boot, opensbi, linux, buildroot, qemu)에 대한 기본 설정 파일, defconfig, 패치 등을 관리
     - `scripts/`
         - 전체/부분 빌드 스크립트, QEMU 실행 스크립트, 클린업 스크립트 등 자동화 스크립트 모음
     - `docs/`
@@ -129,6 +196,8 @@ QEMU를 부팅하여 busybox 셸에서 새 프로그램을 실행하여 테스�
 - 기본 빌드 루트: `<repo_root>/build/` (필요시 환경 변수 `BUILD_ROOT`로 변경 가능)
 - `<repo_root>/build/`
     - `toolchain/` : 선택 사항. 별도 설치한 RISC-V 크로스 툴체인을 로컬에 두는 경우 사용
+        - `qemu/` : 빌드된 QEMU 바이너리 및 관련 파일 설치 경로
+    - `qemu/` : QEMU 빌드 산출물
     - `u-boot/` : U-Boot 빌드 산출물(예: SPL 이미지, u-boot.bin 등)
     - `opensbi/` : OpenSBI 빌드 산출물(예: fw_dynamic.bin 등)
     - `linux/` : Linux Kernel 빌드 산출물(예: vmlinux, Image, System.map 등)
@@ -142,6 +211,7 @@ QEMU를 부팅하여 busybox 셸에서 새 프로그램을 실행하여 테스�
 - U-Boot: `O=<repo_root>/build/u-boot` 형태의 out-of-tree 옵션 사용
 - Linux Kernel: `O=<repo_root>/build/linux` 형태로 빌드 디렉터리 분리
 - Buildroot: `O=<repo_root>/build/buildroot` 또는 유사한 메커니즘 사용
+- QEMU: `--prefix=<repo_root>/build/toolchain/qemu`와 같은 옵션을 사용하여 out-of-tree 빌드 및 설치
 
 이 빌드 디렉터리 구조를 통해 다음을 보장한다.
 
