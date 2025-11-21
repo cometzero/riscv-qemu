@@ -149,7 +149,7 @@
 
 ### Implementation for User Story 1 - Boot Chain Integration
 
-- [ ] T049 [US1] Create scripts/prepare-images.sh to copy all boot images to build/images/ directory
+- [x] T049 [US1] Create scripts/prepare-images.sh to copy all boot images to build/images/ directory
 - [x] T050 [US1] Create scripts/run-qemu.sh to launch QEMU with all boot chain components using build/toolchain/qemu/bin/qemu-system-riscv64
 - [x] T051 [US1] Configure run-qemu.sh with QEMU options (-machine virt -cpu rv64 -smp 4 -m 2G -nographic)
 - [x] T052 [US1] Configure run-qemu.sh to load OpenSBI (-bios), U-Boot, Kernel (-kernel), DTB (-dtb), and initramfs (-initrd)
@@ -170,18 +170,18 @@
 
 ### Implementation for User Story 2
 
-- [ ] T057 [P] [US2] Create scripts/rebuild-u-boot.sh for incremental U-Boot rebuild
-- [ ] T058 [P] [US2] Create scripts/rebuild-opensbi.sh for incremental OpenSBI rebuild
-- [ ] T059 [P] [US2] Create scripts/rebuild-linux.sh for incremental Linux Kernel rebuild
-- [ ] T060 [P] [US2] Create scripts/rebuild-buildroot.sh for incremental Buildroot rebuild
-- [ ] T061 [US2] Create scripts/clean.sh to clean all build artifacts
-- [ ] T062 [P] [US2] Create scripts/clean-u-boot.sh for U-Boot specific clean
-- [ ] T063 [P] [US2] Create scripts/clean-opensbi.sh for OpenSBI specific clean
-- [ ] T064 [P] [US2] Create scripts/clean-linux.sh for Linux Kernel specific clean
-- [ ] T065 [P] [US2] Create scripts/clean-buildroot.sh for Buildroot specific clean
-- [ ] T066 [US2] Document component-specific build and debug workflow in docs/debugging.md
-- [ ] T067 [US2] Add QEMU debugging options documentation (-S -s for GDB, -d guest_errors) in docs/debugging.md
-- [ ] T068 [US2] Document log file locations and analysis in docs/debugging.md
+- [x] T057 [P] [US2] Create scripts/rebuild-uboot.sh for incremental U-Boot rebuild
+- [x] T058 [P] [US2] Create scripts/rebuild-opensbi.sh for incremental OpenSBI rebuild
+- [x] T059 [P] [US2] Create scripts/rebuild-linux.sh for incremental Linux Kernel rebuild
+- [x] T060 [P] [US2] Create scripts/rebuild-buildroot.sh for incremental Buildroot rebuild
+- [x] T061 [US2] Create scripts/clean.sh to clean all build artifacts
+- [x] T062 [P] [US2] Create scripts/clean-u-boot.sh for U-Boot specific clean
+- [x] T063 [P] [US2] Create scripts/clean-opensbi.sh for OpenSBI specific clean
+- [x] T064 [P] [US2] Create scripts/clean-linux.sh for Linux Kernel specific clean
+- [x] T065 [P] [US2] Create scripts/clean-buildroot.sh for Buildroot specific clean
+- [x] T066 [US2] Document component-specific build and debug workflow in docs/debugging.md
+- [x] T067 [US2] Add QEMU debugging options documentation (-S -s for GDB, -d guest_errors) in docs/debugging.md
+- [x] T068 [US2] Document log file locations and analysis in docs/debugging.md
 
 **Checkpoint**: At this point, individual component rebuild and debugging should be fully supported
 
