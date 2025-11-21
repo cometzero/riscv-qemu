@@ -1,0 +1,47 @@
+# Build artifacts
+build/
+*.o
+*.a
+*.so
+*.exe
+*.bin
+*.img
+*.dtb
+*.cpio
+*.ext2
+*.ext4
+
+# Toolchain
+toolchain/
+
+# Logs
+*.log
+logs/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+.*.swp
+
+# Environment files
+.env
+.env.local
+
+# Git submodule tracking (keep .gitmodules)
+# sources/* are tracked via submodules
