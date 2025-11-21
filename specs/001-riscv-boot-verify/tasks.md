@@ -211,14 +211,14 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T076 [P] Update README.md with Quick Start Guide (dependencies → submodule init → build → run)
-- [ ] T077 [P] Create docs/build.md with detailed build instructions for all components
-- [ ] T078 [P] Create docs/qemu.md with QEMU execution and configuration details
-- [ ] T079 [P] Create scripts/menuconfig-u-boot.sh helper script for U-Boot configuration
-- [ ] T080 [P] Create scripts/menuconfig-linux.sh helper script for Linux Kernel configuration
-- [ ] T081 [P] Create scripts/menuconfig-buildroot.sh helper script for Buildroot configuration
-- [ ] T082 Create Makefile with targets: all, clean, qemu-run, help
-- [ ] T083 [P] Create scripts/ci-smoke-test.sh for automated build and boot verification
+- [x] T076 [P] Update README.md with Quick Start Guide (dependencies → submodule init → build → run)
+- [x] T077 [P] Create docs/build.md with detailed build instructions for all components
+- [x] T078 [P] Create docs/qemu.md with QEMU execution and configuration details
+- [x] T079 [P] Create scripts/menuconfig-uboot.sh helper script for U-Boot configuration
+- [x] T080 [P] Create scripts/menuconfig-linux.sh helper script for Linux Kernel configuration
+- [x] T081 [P] Create scripts/menuconfig-buildroot.sh helper script for Buildroot configuration
+- [x] T082 Create Makefile with targets: all, clean, qemu-run, help
+- [x] T083 [P] Create scripts/ci-smoke-test.sh for automated build and boot verification
 - [ ] T084 [P] Document version management and submodule update procedures in docs/version-management.md
 - [ ] T085 Verify all documentation is up-to-date and synchronized with implementation
 - [ ] T086 Final end-to-end verification of complete boot chain with all features
