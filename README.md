@@ -78,10 +78,11 @@ risc-v/
 
 ## Documentation
 
-- [Build Instructions](docs/build.md)
-- [QEMU Setup and Configuration](docs/qemu.md)
-- [Debugging Guide](docs/debugging.md)
-- [Version Management](docs/version-management.md)
+- [Build Guide](docs/build.md): Detailed build instructions.
+- [Debugging Guide](docs/debugging.md): Debugging tips and workflows.
+- [QEMU Guide](docs/qemu.md): How to run and use QEMU.
+- [Custom Rootfs Guide](docs/custom-rootfs.md): Adding packages and customizing the rootfs.
+- [Version Management](docs/version-management.md): Managing submodules and versions.
 
 ## Development Workflow
 
