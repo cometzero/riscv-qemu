@@ -1,0 +1,4 @@
+config BR2_PACKAGE_HELLO_RISCV
+    bool "hello_riscv"
+    help
+      A simple Hello World program for RISC-V verification.

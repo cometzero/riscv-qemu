@@ -53,7 +53,7 @@ copy_image "${LINUX_BUILD_DIR}/Image" "Image"
 copy_image "${LINUX_BUILD_DIR}/dts/qemu-virt.dtb" "qemu-virt.dtb" # Note: DTB might be in a different place depending on kernel version/arch
 
 # 4. Buildroot Rootfs
-copy_image "${BUILDROOT_BUILD_DIR}/rootfs.ext2" "rootfs.ext2"
+copy_image "${BUILDROOT_BUILD_DIR}/sdcard.img" "sdcard.img"
 copy_image "${BUILDROOT_BUILD_DIR}/rootfs.cpio" "rootfs.cpio"
 
 echo ""

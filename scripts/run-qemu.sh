@@ -16,7 +16,7 @@ QEMU_BIN="${PROJECT_ROOT}/build/qemu/install/bin/qemu-system-riscv64"
 OPENSBI_BIN="${PROJECT_ROOT}/build/opensbi/platform/generic/firmware/fw_dynamic.bin"
 UBOOT_BIN="${PROJECT_ROOT}/build/u-boot/u-boot.bin"
 KERNEL_IMAGE="${PROJECT_ROOT}/build/linux/arch/riscv/boot/Image"
-ROOTFS_IMAGE="${PROJECT_ROOT}/build/buildroot/images/rootfs.ext2"
+ROOTFS_IMAGE="${PROJECT_ROOT}/build/buildroot/images/sdcard.img"
 
 # Check if components exist
 check_file() {
@@ -69,8 +69,8 @@ echo ""
     -smp 4 \
     -nographic \
     -bios "${OPENSBI_BIN}" \
-    -device loader,file="${UBOOT_BIN}",addr=0x80200000 \
-    -drive file="${ROOTFS_IMAGE}",format=raw,id=hd0 \
+    -kernel "${UBOOT_BIN}" \
+    -drive file="${ROOTFS_IMAGE}",format=raw,id=hd0,if=none \
     -device virtio-blk-device,drive=hd0 \
     -netdev user,id=net0 \
     -device virtio-net-device,netdev=net0

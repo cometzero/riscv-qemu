@@ -43,8 +43,9 @@ log_exec() {
 echo "Step 1: Configuring Buildroot..."
 cd "${BUILDROOT_SRC_DIR}"
 
-# Use qemu_riscv64_virt_defconfig as base
-log_exec make O="${BUILDROOT_BUILD_DIR}" qemu_riscv64_virt_defconfig
+# Use qemu_riscv64_virt_defconfig as base with BR2_EXTERNAL
+# Use custom riscv64_virt_defconfig with BR2_EXTERNAL
+log_exec make BR2_EXTERNAL="${PROJECT_ROOT}/configs/buildroot/external" O="${BUILDROOT_BUILD_DIR}" defconfig BR2_DEFCONFIG="${PROJECT_ROOT}/configs/buildroot/riscv64_virt_defconfig"
 
 if [ $? -ne 0 ]; then
     echo "ERROR: Buildroot configuration failed. Check ${LOG_FILE}"
@@ -75,10 +76,10 @@ echo "  tar:  ${BUILDROOT_BUILD_DIR}/images/rootfs.tar"
 echo ""
 
 # Verify the build
-if [ -f "${BUILDROOT_BUILD_DIR}/images/rootfs.ext2" ]; then
-    echo "✓ Buildroot rootfs.ext2 built successfully"
-    ls -lh "${BUILDROOT_BUILD_DIR}/images/rootfs.ext2"
+if [ -f "${BUILDROOT_BUILD_DIR}/images/sdcard.img" ]; then
+    echo "✓ Buildroot sdcard.img built successfully"
+    ls -lh "${BUILDROOT_BUILD_DIR}/images/sdcard.img"
 else
-    echo "✗ Buildroot rootfs.ext2 not found"
+    echo "✗ Buildroot sdcard.img not found"
     exit 1
 fi
