@@ -29,58 +29,39 @@ DRAM wgChecker is configured with default slots when `wg-hwbypass=off`:
     -device virtio-net-device,netdev=net0
 ```
 
+### Bare-metal Test Framework ✅
+
+Created `tests/worldguard/` with the following components:
+
+| File | Description |
+|------|-------------|
+| `worldguard.h` | WorldGuard CSR definitions (mlwid, slwid, mwiddeleg) |
+| `wgchecker.h` | wgChecker MMIO register definitions and access functions |
+| `boot.S` | Entry point with trap handler for access fault testing |
+| `main.c` | Test cases for memory access, CSR, and wgChecker |
+| `linker.ld` | Linker script for QEMU virt machine |
+| `Makefile` | Build and run targets with WorldGuard options |
+
+**Build and Run:**
+```bash
+cd tests/worldguard
+make              # Build test.elf
+make run          # Run with hwbypass=off
+make run-bypass   # Run with hwbypass=on
+make run-trace    # Run with wgChecker trace
+```
+
+**Current Test Status:**
+- ✅ T1: Basic DRAM read/write
+- ⏭️ T2: WorldGuard CSR tests (requires CPU model patches)
+- ⏭️ T3-4: wgChecker MMIO tests (requires system initialization)
+
+**Note:** WorldGuard CSR (mlwid, slwid) and wgChecker MMIO access are not
+available in bare-metal context. These require either:
+1. Additional QEMU CPU model patches for CSR support
+2. Full boot chain (OpenSBI/U-Boot/Linux) for MMIO initialization
+
 ---
-
-## TODO: OpenSBI WorldGuard Patch
-
-### Goal
-Enable OpenSBI to properly initialize WorldGuard and set WIDs for different privilege levels.
-
-### Implementation Steps
-
-1. **Add WorldGuard CSR Definitions**
-   - File: `include/sbi/riscv_encoding.h`
-   - Add CSR addresses: `CSR_MLWID`, `CSR_SLWID`, `CSR_MWIDDELEG`
-   ```c
-   #define CSR_MLWID       0x7C0
-   #define CSR_SLWID       0x1C0
-   #define CSR_MWIDDELEG   0x3C0
-   ```
-
-2. **Detect WorldGuard Extension**
-   - File: `lib/sbi/sbi_hart.c`
-   - Add detection of Smwg/Sswg extensions via CSR access test
-   ```c
-   bool sbi_hart_has_worldguard(void)
-   {
-       // Try to read mlwid CSR
-       // If no exception, WorldGuard is present
-   }
-   ```
-
-3. **Initialize WorldGuard CSRs at Boot**
-   - File: `lib/sbi/sbi_init.c` or new `lib/sbi/sbi_worldguard.c`
-   - Set appropriate WIDs:
-     - `mlwid = 3` (trusted, M-mode)
-     - `slwid = 2` (S-mode for U-Boot/Linux)
-     - `mwiddeleg = 0x6` (delegate WID 1, 2 to S-mode)
-   ```c
-   void sbi_worldguard_init(void)
-   {
-       csr_write(CSR_MLWID, 3);
-       csr_write(CSR_SLWID, 2);
-       csr_write(CSR_MWIDDELEG, 0x6);
-   }
-   ```
-
-4. **Configure wgChecker for Proper Isolation**
-   - Read wgChecker MMIO base from device tree
-   - Program slots to restrict World 1 (U-mode) to specific regions
-   - Lock critical slots to prevent S-mode modification
-
-5. **Update Device Tree**
-   - Add WorldGuard device nodes for wgChecker MMIO regions
-   - Pass nworlds, trustedwid info to payload
 
 ### Expected WID Assignments
 | Mode | WID | Description |
