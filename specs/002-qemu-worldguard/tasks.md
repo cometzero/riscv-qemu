@@ -134,15 +134,30 @@
 
 ## Summary
 
-**All 37 tasks completed.**
+**All 44 tasks completed.**
 
 - Phase 1-2: 18 WorldGuard commits cherry-picked, build fix applied
 - Phase 3: QEMU build verified, WorldGuard option confirmed (`-M virt,wg=on`)
 - Phase 4-5: Full boot chain verified (OpenSBI → U-Boot → Linux → Buildroot login)
 - Phase 6: Documentation created
+- Phase 7: Advanced features implemented
+
+**Recent Additions (Phase 7):**
+- [x] T038 Expose WorldGuard machine options (`wg-nworlds`, `wg-trustedwid`, `wg-hwbypass`, `wg-tzcompat`)
+- [x] T039 Implement default wgChecker DRAM slots for hwbypass=off testing
+- [x] T040 Implement default wgChecker UART slots for console access
+- [x] T041 Verify full boot chain with hwbypass=off
+- [x] T042 Create bare-metal test framework (`tests/worldguard/`)
+- [x] T043 Implement WorldGuard CSR header definitions
+- [x] T044 Implement wgChecker MMIO register definitions
 
 **Key Files Created/Modified:**
 - `scripts/run-qemu-worldguard.sh` - WorldGuard-enabled run script
 - `docs/worldguard.md` - Usage documentation
+- `docs/worldguard-testing-todo.md` - Future work documentation
 - `sources/qemu/hw/misc/riscv_worldguard.c` - Fixed property array (const)
 - `sources/qemu/hw/misc/riscv_wgchecker.c` - Fixed property array (const)
+- `sources/qemu/hw/riscv/virt.c` - Machine options & default slots
+- `sources/qemu/include/hw/riscv/virt.h` - RISCVVirtState fields
+- `tests/worldguard/` - Bare-metal test framework
+
