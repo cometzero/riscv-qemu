@@ -226,6 +226,33 @@
 
 ---
 
+## Phase 10: Source Revision Update (Maintenance)
+
+**Purpose**: Update all Git submodules to latest stable revisions and verify build compatibility
+
+**Goal**: 개발자는 QEMU, U-Boot, OpenSBI, Linux Kernel, Buildroot의 Git 서브모듈을 최신 안정 버전으로 업데이트하고, 업데이트 후에도 전체 부트 체인이 정상 동작하는지 검증할 수 있어야 한다.
+
+**Independent Test**: scripts/update-sources.sh를 실행하여 모든 서브모듈이 최신 버전으로 업데이트되고, scripts/build-all.sh로 전체 빌드가 성공하며, scripts/run-qemu.sh로 부트 체인이 정상 동작하는지 확인할 수 있다.
+
+### Implementation for Source Update
+
+- [x] T087 [P] Create scripts/update-qemu.sh to fetch and checkout latest stable QEMU tag in sources/qemu/
+- [x] T088 [P] Create scripts/update-uboot.sh to fetch and checkout latest stable U-Boot tag in sources/u-boot/
+- [x] T089 [P] Create scripts/update-opensbi.sh to fetch and checkout latest stable OpenSBI tag in sources/opensbi/
+- [x] T090 [P] Create scripts/update-linux.sh to fetch and checkout latest stable Linux kernel tag in sources/linux/
+- [x] T091 [P] Create scripts/update-buildroot.sh to fetch and checkout latest stable Buildroot tag in sources/buildroot/
+- [x] T092 Create scripts/update-sources.sh to orchestrate update of all submodules with version logging
+- [x] T093 Execute scripts/update-sources.sh and record updated commit hashes in docs/version-history.md
+- [x] T094 Update .gitmodules with new pinned commit hashes for each submodule
+- [x] T095 Execute scripts/build-all.sh to verify all components build successfully with updated sources
+- [x] T096 Execute scripts/run-qemu.sh and verify boot chain works with updated components
+- [x] T097 Update docs/version-management.md with latest version information and changelog
+- [ ] T098 Commit updated submodule references and documentation
+
+**Checkpoint**: At this point, all source components should be updated to latest stable versions with verified build and boot
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -239,6 +266,7 @@
 - **User Story 2 (Phase 7)**: Depends on User Story 1 - Component-specific rebuild capabilities
 - **User Story 3 (Phase 8)**: Depends on User Story 1 - Custom rootfs integration
 - **Polish (Phase 9)**: Depends on all desired user stories being complete
+- **Source Update (Phase 10)**: Depends on Phase 9 - Can be run periodically for maintenance
 
 ### User Story Dependencies
 
