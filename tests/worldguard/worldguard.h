@@ -2,6 +2,7 @@
  * RISC-V WorldGuard CSR Definitions
  *
  * Based on RISC-V WorldGuard Specification v0.4
+ * CSR addresses match QEMU implementation (sources/qemu/target/riscv/cpu_bits.h)
  */
 
 #ifndef WORLDGUARD_H
@@ -9,10 +10,10 @@
 
 #include <stdint.h>
 
-/* WorldGuard CSR addresses */
-#define CSR_MLWID       0x7C0   /* Machine Local World ID */
-#define CSR_SLWID       0x1C0   /* Supervisor Local World ID */
-#define CSR_MWIDDELEG   0x3C0   /* Machine WID Delegation */
+/* WorldGuard CSR addresses (from QEMU cpu_bits.h) */
+#define CSR_MLWID       0x390   /* Machine Local World ID */
+#define CSR_SLWID       0x190   /* Supervisor Local World ID */
+#define CSR_MWIDDELEG   0x748   /* Machine WID Delegation */
 
 /* Helper macros for CSR access */
 #define csr_read(csr) ({                                    \
@@ -42,13 +43,13 @@ static inline uint64_t read_csr_num(int csr_num)
     uint64_t val;
     switch (csr_num) {
         case CSR_MLWID:
-            __asm__ __volatile__ ("csrr %0, 0x7C0" : "=r" (val));
+            __asm__ __volatile__ ("csrr %0, 0x390" : "=r" (val));
             break;
         case CSR_SLWID:
-            __asm__ __volatile__ ("csrr %0, 0x1C0" : "=r" (val));
+            __asm__ __volatile__ ("csrr %0, 0x190" : "=r" (val));
             break;
         case CSR_MWIDDELEG:
-            __asm__ __volatile__ ("csrr %0, 0x3C0" : "=r" (val));
+            __asm__ __volatile__ ("csrr %0, 0x748" : "=r" (val));
             break;
         default:
             val = 0;
@@ -60,13 +61,13 @@ static inline void write_csr_num(int csr_num, uint64_t val)
 {
     switch (csr_num) {
         case CSR_MLWID:
-            __asm__ __volatile__ ("csrw 0x7C0, %0" :: "r" (val));
+            __asm__ __volatile__ ("csrw 0x390, %0" :: "r" (val));
             break;
         case CSR_SLWID:
-            __asm__ __volatile__ ("csrw 0x1C0, %0" :: "r" (val));
+            __asm__ __volatile__ ("csrw 0x190, %0" :: "r" (val));
             break;
         case CSR_MWIDDELEG:
-            __asm__ __volatile__ ("csrw 0x3C0, %0" :: "r" (val));
+            __asm__ __volatile__ ("csrw 0x748, %0" :: "r" (val));
             break;
     }
 }
