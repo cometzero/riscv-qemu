@@ -2,9 +2,9 @@
 
 This document outlines the remaining tasks for comprehensive WorldGuard testing.
 
-## Completed
+## Completed ✅
 
-### QEMU Default wgChecker Configuration ✅
+### 1. QEMU Default wgChecker Configuration
 
 DRAM wgChecker is configured with default slots when `wg-hwbypass=off`:
 
@@ -16,143 +16,250 @@ DRAM wgChecker is configured with default slots when `wg-hwbypass=off`:
 | 4 | 0xC0000000 - 0xCFFFFFFF (256MB) | W0+W1+W3 |
 | 5 | 0xD0000000 - 0xFFFFFFFF (remainder) | W0+W3 |
 
-**Test Command:**
-```bash
-./build/qemu/qemu-system-riscv64 \
-    -M virt,wg=on,wg-nworlds=4,wg-trustedwid=3,wg-hwbypass=off \
-    -m 2G -smp 4 -nographic \
-    -bios ./build/opensbi/platform/generic/firmware/fw_dynamic.bin \
-    -kernel ./build/u-boot/u-boot.bin \
-    -drive file=./build/buildroot/images/sdcard.img,format=raw,id=hd0,if=none \
-    -device virtio-blk-device,drive=hd0 \
-    -netdev user,id=net0 \
-    -device virtio-net-device,netdev=net0
-```
+### 2. Bare-metal Test Framework
 
-### Bare-metal Test Framework ✅
+Created `tests/worldguard/` with CSR/MMIO definitions and test infrastructure.
+Note: CSR tests are skipped in bare-metal mode due to QEMU initialization timing.
 
-Created `tests/worldguard/` with the following components:
+### 3. Full Boot Chain Verification
 
-| File | Description |
-|------|-------------|
-| `worldguard.h` | WorldGuard CSR definitions (mlwid, slwid, mwiddeleg) |
-| `wgchecker.h` | wgChecker MMIO register definitions and access functions |
-| `boot.S` | Entry point with trap handler for access fault testing |
-| `main.c` | Test cases for memory access, CSR, and wgChecker |
-| `linker.ld` | Linker script for QEMU virt machine |
-| `Makefile` | Build and run targets with WorldGuard options |
-
-**Build and Run:**
-```bash
-cd tests/worldguard
-make              # Build test.elf
-make run          # Run with hwbypass=off
-make run-bypass   # Run with hwbypass=on
-make run-trace    # Run with wgChecker trace
-```
-
-**Current Test Status:**
-- ✅ T1: Basic DRAM read/write
-- ⏭️ T2: WorldGuard CSR tests (requires CPU model patches)
-- ⏭️ T3-4: wgChecker MMIO tests (requires system initialization)
-
-**Note:** WorldGuard CSR (mlwid, slwid) and wgChecker MMIO access are not
-available in bare-metal context. These require either:
-1. Additional QEMU CPU model patches for CSR support
-2. Full boot chain (OpenSBI/U-Boot/Linux) for MMIO initialization
+Successfully verified OpenSBI → U-Boot → Linux → Buildroot boot with `hwbypass=off`.
 
 ---
 
-### Expected WID Assignments
-| Mode | WID | Description |
-|------|-----|-------------|
-| M-mode (OpenSBI) | 3 | Trusted, full access |
-| S-mode (U-Boot/Linux) | 2 | Kernel access |
-| U-mode (Applications) | 1 | Limited access |
-| Reserved | 0 | Boot WID (should transition) |
+## TODO: OpenSBI WorldGuard Patch
 
-### Testing
-1. Boot OpenSBI with WorldGuard patch
-2. Verify CSR values from S-mode (Linux)
-3. Test memory access patterns across worlds
+### Overview
 
----
+OpenSBI needs to be modified to properly initialize and manage WorldGuard features.
+This enables dynamic WID management during boot and provides SBI calls for S-mode.
 
-## TODO: Bare-metal WorldGuard Test Program
+### Prerequisites
 
-### Goal
-Create a standalone M-mode test program to verify WorldGuard functionality.
+- QEMU with WorldGuard patches (completed)
+- Understanding of OpenSBI internals
+- RISC-V WorldGuard Specification v0.4
 
-### Implementation Steps
+### Implementation Plan
 
-1. **Create Test Directory**
-   ```
-   tests/worldguard/
-   ├── Makefile
-   ├── boot.S          # Entry point, set up SP
-   ├── main.c          # Test logic
-   ├── wgchecker.h     # wgChecker register definitions
-   ├── worldguard.h    # CSR definitions
-   └── linker.ld       # Linker script for QEMU
-   ```
+#### Phase 1: CSR Definitions and Detection
 
-2. **wgchecker.h - Register Definitions**
-   ```c
-   #define WGC_SLOT_ADDR(n)  (WGC_BASE + 0x100 + (n) * 0x20)
-   #define WGC_SLOT_PERM(n)  (WGC_BASE + 0x100 + (n) * 0x20 + 0x08)
-   #define WGC_SLOT_CFG(n)   (WGC_BASE + 0x100 + (n) * 0x20 + 0x10)
-   
-   #define WGC_CFG_A_OFF     0
-   #define WGC_CFG_A_TOR     1
-   #define WGC_CFG_A_NAPOT   3
-   ```
+**File: `include/sbi/riscv_encoding.h`**
 
-3. **Test Cases**
-   - **T1: WID Change**
-     - Write to mlwid CSR
-     - Verify change took effect
-   
-   - **T2: Access Allowed Region**
-     - Set WID to world with access
-     - Read/Write to allowed region
-     - Verify no error
-   
-   - **T3: Access Denied Region**
-     - Set WID to world without access
-     - Try to access denied region
-     - Catch exception, verify wgChecker error registers
-   
-   - **T4: wgChecker Slot Programming**
-     - Read default slot configuration
-     - Modify slot permissions
-     - Verify access patterns change
-
-4. **Expected Test Output**
-   ```
-   === WorldGuard Bare-metal Test ===
-   [PASS] T1: WID change mlwid=0 -> mlwid=3
-   [PASS] T2: Read/Write to 0x80000000 with WID=3
-   [PASS] T3: Access denied to 0xC0000000 with WID=1
-   [PASS] T4: wgChecker slot programming
-   === All tests passed ===
-   ```
-
-### Running the Test
-```bash
-# Build bare-metal test
-make -C tests/worldguard
-
-# Run with QEMU
-./build/qemu/qemu-system-riscv64 \
-    -M virt,wg=on,wg-hwbypass=off \
-    -m 256M -smp 1 -nographic \
-    -bios tests/worldguard/test.elf
+Add WorldGuard CSR definitions:
+```c
+/* WorldGuard CSRs */
+#define CSR_MLWID       0x390
+#define CSR_SLWID       0x190
+#define CSR_MWIDDELEG   0x748
 ```
+
+**File: `lib/sbi/sbi_hart.c`**
+
+Add WorldGuard detection:
+```c
+static bool sbi_hart_has_worldguard(struct sbi_scratch *scratch)
+{
+    unsigned long val;
+    
+    /* Try to read mlwid CSR - if it traps, WorldGuard is not present */
+    if (sbi_trap_csr_read(CSR_MLWID, &val))
+        return false;
+    
+    return true;
+}
+```
+
+#### Phase 2: WorldGuard Initialization
+
+**File: `lib/sbi/sbi_worldguard.c` (NEW)**
+
+Create WorldGuard initialization module:
+```c
+#include <sbi/sbi_worldguard.h>
+#include <sbi/riscv_encoding.h>
+
+/* WorldGuard configuration */
+static struct {
+    unsigned int nworlds;
+    unsigned int trustedwid;
+    bool enabled;
+} wg_config;
+
+int sbi_worldguard_init(struct sbi_scratch *scratch)
+{
+    if (!sbi_hart_has_worldguard(scratch))
+        return SBI_OK;  /* WorldGuard not available */
+    
+    wg_config.enabled = true;
+    
+    /* Set M-mode WID to trusted (3) */
+    csr_write(CSR_MLWID, 3);
+    
+    /* Set S-mode WID to 2 */
+    csr_write(CSR_SLWID, 2);
+    
+    /* Delegate WID 1,2 to S-mode */
+    csr_write(CSR_MWIDDELEG, 0x6);  /* bits 1,2 */
+    
+    sbi_printf("WorldGuard: enabled, mlwid=%lu, slwid=%lu\n",
+               csr_read(CSR_MLWID), csr_read(CSR_SLWID));
+    
+    return SBI_OK;
+}
+```
+
+**File: `lib/sbi/sbi_init.c`**
+
+Call WorldGuard init during boot:
+```c
+/* In sbi_init() or sbi_hart_init() */
+rc = sbi_worldguard_init(scratch);
+if (rc)
+    sbi_hart_hang();
+```
+
+#### Phase 3: wgChecker Configuration (Optional)
+
+If OpenSBI needs to configure wgChecker slots:
+
+**File: `lib/sbi/sbi_worldguard.c`**
+
+```c
+/* wgChecker MMIO registers */
+#define WGC_DRAM_BASE   0x6000000UL
+#define WGC_SLOT_BASE   0x100
+#define WGC_SLOT_SIZE   0x020
+
+static void wgc_write64(unsigned long addr, uint64_t val)
+{
+    *(volatile uint64_t *)addr = val;
+}
+
+int sbi_worldguard_configure_dram(void)
+{
+    /* Example: Lock critical regions for M-mode only */
+    unsigned long slot_addr = WGC_DRAM_BASE + WGC_SLOT_BASE + 2 * WGC_SLOT_SIZE;
+    
+    /* Set slot[2] to protect OpenSBI memory (0xA0000000-0xB0000000) */
+    wgc_write64(slot_addr + 0x00, 0xB0000000 >> 2);  /* addr */
+    wgc_write64(slot_addr + 0x08, 0xC0);              /* perm: W3 RW only */
+    wgc_write32(slot_addr + 0x10, 0x1);               /* cfg: TOR */
+    
+    return SBI_OK;
+}
+```
+
+#### Phase 4: SBI Extension for WorldGuard
+
+**File: `lib/sbi/sbi_ecall_worldguard.c` (NEW)**
+
+Implement SBI extension for S-mode WorldGuard management:
+```c
+#include <sbi/sbi_ecall.h>
+#include <sbi/sbi_ecall_interface.h>
+
+#define SBI_EXT_WORLDGUARD  0x57475244  /* "WGRD" */
+
+/* SBI WorldGuard function IDs */
+#define SBI_EXT_WG_GET_NWORLDS   0
+#define SBI_EXT_WG_GET_SLWID     1
+#define SBI_EXT_WG_SET_SLWID     2
+
+static int sbi_ecall_worldguard_handler(unsigned long extid,
+                                        unsigned long funcid,
+                                        struct sbi_trap_regs *regs,
+                                        struct sbi_ecall_return *out)
+{
+    switch (funcid) {
+    case SBI_EXT_WG_GET_NWORLDS:
+        out->value = wg_config.nworlds;
+        break;
+    case SBI_EXT_WG_GET_SLWID:
+        out->value = csr_read(CSR_SLWID);
+        break;
+    case SBI_EXT_WG_SET_SLWID:
+        csr_write(CSR_SLWID, regs->a0);
+        break;
+    default:
+        return SBI_ENOTSUPP;
+    }
+    return SBI_OK;
+}
+
+struct sbi_ecall_extension ecall_worldguard = {
+    .extid_start = SBI_EXT_WORLDGUARD,
+    .extid_end = SBI_EXT_WORLDGUARD,
+    .handle = sbi_ecall_worldguard_handler,
+};
+```
+
+### Testing Steps
+
+1. **Build OpenSBI with patches**
+   ```bash
+   cd sources/opensbi
+   make PLATFORM=generic CROSS_COMPILE=riscv64-linux-gnu-
+   ```
+
+2. **Run QEMU with patched OpenSBI**
+   ```bash
+   ./build/qemu/qemu-system-riscv64 \
+       -M virt,wg=on,wg-nworlds=4,wg-trustedwid=3,wg-hwbypass=off \
+       -m 2G -smp 4 -nographic \
+       -bios ./sources/opensbi/build/platform/generic/firmware/fw_dynamic.bin \
+       -kernel ./build/u-boot/u-boot.bin
+   ```
+
+3. **Verify WorldGuard initialization in boot log**
+   ```
+   OpenSBI v1.7
+   ...
+   WorldGuard: enabled, mlwid=3, slwid=2
+   ...
+   ```
+
+4. **Test from Linux**
+   ```bash
+   # Read CSR values via /dev/mem or custom driver
+   # Verify world assignments
+   ```
+
+### WID Assignment Strategy
+
+| Mode | WID | Purpose |
+|------|-----|---------|
+| M-mode | 3 | OpenSBI - Trusted, full access |
+| S-mode (kernel) | 2 | Linux kernel - Protected kernel memory |
+| U-mode (apps) | 1 | User applications - Restricted access |
+| Boot/Reserved | 0 | Initial boot, transitions to WID 3 |
+
+### Files to Create/Modify
+
+| File | Action | Description |
+|------|--------|-------------|
+| `include/sbi/riscv_encoding.h` | Modify | Add CSR definitions |
+| `include/sbi/sbi_worldguard.h` | Create | WorldGuard API header |
+| `lib/sbi/sbi_worldguard.c` | Create | WorldGuard implementation |
+| `lib/sbi/sbi_init.c` | Modify | Call WG init |
+| `lib/sbi/sbi_ecall_worldguard.c` | Create | SBI extension |
+| `lib/sbi/objects.mk` | Modify | Add new source files |
+
+### Estimated Effort
+
+- Phase 1 (Detection): 1-2 hours
+- Phase 2 (Init): 2-4 hours
+- Phase 3 (wgChecker): 4-6 hours (optional)
+- Phase 4 (SBI Extension): 4-8 hours
+- Testing & Debug: 4-8 hours
+
+**Total: 15-28 hours**
 
 ---
 
 ## References
 
-- [RISC-V WorldGuard Spec](https://github.com/riscv/riscv-worldguard)
-- [OpenSBI Documentation](https://github.com/riscv-software-src/opensbi)
-- QEMU WorldGuard implementation: `sources/qemu/hw/misc/riscv_wgchecker.c`
+- [RISC-V WorldGuard Specification](https://github.com/riscv/riscv-worldguard)
+- [OpenSBI Documentation](https://github.com/riscv-software-src/opensbi/tree/master/docs)
+- QEMU WorldGuard: `sources/qemu/hw/misc/riscv_wgchecker.c`
+- QEMU CSR impl: `sources/qemu/target/riscv/csr.c` (lines 5476-5578)
