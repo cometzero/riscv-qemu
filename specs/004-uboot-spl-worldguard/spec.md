@@ -30,6 +30,17 @@ QEMU (wg=on) → U-Boot SPL → OpenSBI → U-Boot Proper → Linux → rootfs
 
 Users need U-Boot SPL to initialize WorldGuard CSRs and wgChecker slots before loading OpenSBI, enabling proper M-mode to S-mode boot flow control with WorldGuard protection from the earliest boot stage.
 
+## Clarifications
+
+### Session 2025-12-06
+
+- Q: How should U-Boot SPL pass WorldGuard state to OpenSBI? → A: SPL passes WG config via Device Tree (adds new DT properties before OpenSBI loads)
+- Q: Should wgChecker slots remain locked throughout the entire boot chain, or can later stages reprogram them? → A: Lock conditionally based on Device Tree property (configurable policy)
+- Q: How should SPL modify the Device Tree in memory? → A: Create new DTB from scratch with merged properties (requires full DTB generation)
+- Q: How should SPL handle illegal instruction exceptions when trying to access WorldGuard CSRs on non-WG hardware? → A: Read DT first, skip CSR access entirely if no WG node present
+- Q: How much memory should SPL allocate for the new merged Device Tree blob? → A: 128KB DTB buffer - allows growth
+
+
 ## User Scenarios & Testing
 
 ### Scenario 1: Boot with WorldGuard Disabled (wg=off)
@@ -72,14 +83,16 @@ Users need U-Boot SPL to initialize WorldGuard CSRs and wgChecker slots before l
 ### FR1: U-Boot SPL Boot Flow
 - U-Boot SPL shall be the first-stage bootloader loaded by QEMU
 - SPL shall run in RISC-V M-mode (Machine mode)
-- SPL shall load OpenSBI as a second-stage payload
-- SPL shall preserve boot arguments and DTB for OpenSBI
+- SPL shall create new Device Tree blob with WorldGuard properties merged
+- New DTB shall include: original QEMU DTB content + WorldGuard state properties
+- SPL shall load OpenSBI as a second-stage payload with modified DTB
+- SPL shall preserve boot arguments for OpenSBI
 
 ### FR2: WorldGuard Detection in SPL
-- SPL shall detect WorldGuard hardware by reading mlwid CSR
-- SPL shall check Device Tree for `riscv,worldguard` compatible node
-- If WorldGuard DT node absent, SPL shall skip WorldGuard init (silent)
-- Detection shall not cause boot failure on non-WorldGuard systems
+- SPL shall first check Device Tree for `riscv,worldguard` compatible node
+- Only if DT node present, SPL shall read mlwid CSR to verify hardware support
+- If WorldGuard DT node absent, SPL shall skip all WorldGuard initialization (silent)
+- Detection shall not cause boot failure on non-WorldGuard systems (no CSR access without DT node)
 
 ### FR3: WorldGuard CSR Initialization
 - SPL shall initialize mlwid CSR to trustedwid value from DT (default: 3)
@@ -91,14 +104,16 @@ Users need U-Boot SPL to initialize WorldGuard CSRs and wgChecker slots before l
 - SPL shall parse `slots` property from `riscv,wgchecker` DT node
 - SPL shall program wgChecker MMIO registers for each slot
 - Slot format: `<addr_hi addr_lo size_hi size_lo perm cfg>`
-- SPL shall set lock bit after programming all slots
+- SPL shall set lock bit based on DT property `worldguard,lock-slots` (default: true)
+- If `worldguard,lock-slots=false`, later boot stages may reprogram slots
 - MMIO base address: 0x6000000 (from DT reg property)
 
 ### FR5: OpenSBI Compatibility
-- OpenSBI WorldGuard init code shall be disabled/removed
-- OpenSBI shall not reprogram WorldGuard CSRs
-- OpenSBI shall inherit WorldGuard configuration from SPL
-- Boot chain shall work with existing OpenSBI v1.7
+- SPL shall add WorldGuard state properties to Device Tree before loading OpenSBI
+- New DT properties: `worldguard,spl-initialized`, `worldguard,mlwid`, `worldguard,mwiddeleg`
+- OpenSBI shall read these DT properties to verify SPL initialization
+- OpenSBI WorldGuard init code shall skip CSR programming if `spl-initialized` is true
+- Boot chain shall work with existing OpenSBI v1.7 (DT properties optional)
 
 ### FR6: Logging and Debug
 - SPL shall log WorldGuard detection status
@@ -174,6 +189,8 @@ Users need U-Boot SPL to initialize WorldGuard CSRs and wgChecker slots before l
 - nworlds: u32 (number of World IDs, default 4)
 - trustedwid: u32 (M-mode World ID, default 3)
 - mwiddeleg: u32 (delegation bitmask, default 0x6)
+- lock_slots: bool (lock wgChecker after SPL, default true)
+- spl_initialized: bool (SPL completed WG init, set by SPL)
 
 ### WgCheckerSlot
 - addr_start: u64 (region start address)
@@ -189,9 +206,10 @@ Users need U-Boot SPL to initialize WorldGuard CSRs and wgChecker slots before l
 ## Technical Constraints
 
 1. **Code Size**: SPL has limited size (~64KB typical)
-2. **No malloc**: SPL may have restricted heap
-3. **Early Boot**: Limited library functions available
-4. **Binary Size**: Keep WorldGuard code compact (<4KB)
+2. **DTB Memory**: Allocate 128KB buffer for merged Device Tree blob
+3. **No malloc**: SPL may have restricted heap
+4. **Early Boot**: Limited library functions available
+5. **Binary Size**: Keep WorldGuard code compact (<4KB)
 
 ## Risks & Mitigations
 
