@@ -158,11 +158,11 @@ Implementation tasks for moving WorldGuard initialization from OpenSBI to U-Boot
 
 ### Tasks
 
-- [ ] T041 Update sources/u-boot/board/qemu-riscv/spl/Makefile to include worldguard.o and fdt_merge.o
-- [ ] T042 Add CONFIG_SPL_WORLDGUARD config option
-- [ ] T043 Update sources/u-boot/include/configs/qemu-riscv.h with SPL configs
-- [ ] T044 Test clean build from scratch
-- [ ] T045 Verify SPL binary size < 64KB
+- [x] T041 Update sources/u-boot/board/emulation/qemu-riscv/spl/Makefile to include worldguard.o and fdt_merge.o
+- [x] T042 Add CONFIG_SPL_WORLDGUARD config option
+- [x] T043 Update sources/u-boot/include/configs/qemu-riscv.h with SPL configs
+- [x] T044 Test clean build from scratch
+- [x] T045 Verify SPL binary size < 64KB
 
 ---
 
@@ -172,16 +172,16 @@ Implementation tasks for moving WorldGuard initialization from OpenSBI to U-Boot
 
 ### Tasks
 
-- [ ] T046 Create test script scripts/test-spl-worldguard.sh
-- [ ] T047 Automated Test 1: SPL build verification (size check)
-- [ ] T048 Automated Test 2: Boot with wg=off (no WG messages)
-- [ ] T049 Automated Test 3: Boot with wg=on (SPL WG init logs)
-- [ ] T050 Automated Test 4: DTB property verification
-- [ ] T051 Automated Test 5: wgChecker lock bit configuration
-- [ ] T052 Manual Test 1: Full boot chain observation
-- [ ] T053 Manual Test 2: Error handling (no DT node)
-- [ ] T054 Manual Test 3: Slot configuration verification
-- [ ] T055 Performance test: Boot time overhead < 100ms
+- [x] T046 Create test script scripts/test-spl-worldguard.sh
+- [x] T047 Automated Test 1: SPL build verification (size check)
+- [x] T048 Automated Test 2: Boot with wg=off (no WG messages)
+- [x] T049 Automated Test 3: Boot with wg=on (SPL WG init logs)
+- [x] T050 Automated Test 4: DTB property verification
+- [x] T051 Automated Test 5: wgChecker lock bit configuration
+- [x] T052 Manual Test 1: Full boot chain observation
+- [x] T053 Manual Test 2: Error handling (no DT node)
+- [x] T054 Manual Test 3: Slot configuration verification
+- [x] T055 Performance test: Boot time overhead < 100ms
 
 ---
 
@@ -191,12 +191,12 @@ Implementation tasks for moving WorldGuard initialization from OpenSBI to U-Boot
 
 ### Tasks
 
-- [ ] T056 Update docs/worldguard.md with SPL integration section
-- [ ] T057 Create testing guide in specs/004-uboot-spl-worldguard/testing-guide.md
-- [ ] T058 Update README.md with new boot sequence
-- [ ] T059 Document DTB property format for OpenSBI handoff
-- [ ] T060 Create test results report in specs/004-uboot-spl-worldguard/test-results.md
-- [ ] T061 Update build documentation for SPL workflow
+- [x] T056 Update docs/worldguard.md with SPL integration section
+- [x] T057 Create testing guide in specs/004-uboot-spl-worldguard/testing-guide.md
+- [x] T058 Update README.md with new boot sequence
+- [x] T059 Document DTB property format for OpenSBI handoff
+- [x] T060 Create test results report in specs/004-uboot-spl-worldguard/test-results.md
+- [x] T061 Update build documentation for SPL workflow
 
 ---
 
