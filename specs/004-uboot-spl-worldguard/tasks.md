@@ -20,10 +20,10 @@ Implementation tasks for moving WorldGuard initialization from OpenSBI to U-Boot
 
 ### Tasks
 
-- [ ] T001 Create U-Boot SPL defconfig in sources/u-boot/configs/qemu-riscv64_spl_defconfig
-- [ ] T002 Add SPL Kconfig option in sources/u-boot/board/qemu-riscv/Kconfig
-- [ ] T003 Create build script scripts/build-uboot-spl.sh
-- [ ] T004 Test basic SPL build (no WorldGuard yet)
+- [x] T001 Create U-Boot SPL defconfig in sources/u-boot/configs/qemu-riscv64_spl_defconfig
+- [x] T002 Add SPL Kconfig option in sources/u-boot/board/emulation/qemu-riscv/Kconfig
+- [x] T003 Create build script scripts/build-uboot-spl.sh
+- [x] T004 Test basic SPL build (no WorldGuard yet)
 
 ---
 
@@ -40,10 +40,10 @@ Implementation tasks for moving WorldGuard initialization from OpenSBI to U-Boot
 
 ### Tasks
 
-- [ ] T005 Create SPL board initialization in sources/u-boot/board/qemu-riscv/spl/spl.c
-- [ ] T006 Configure SPL to load OpenSBI as payload
-- [ ] T007 Update QEMU launch scripts to use SPL as -bios
-- [ ] T008 Verify SPL → OpenSBI → U-Boot → Linux chain with wg=off
+- [x] T005 Create SPL board initialization in sources/u-boot/board/emulation/qemu-riscv/spl/spl.c
+- [x] T006 Configure SPL to load OpenSBI as payload
+- [x] T007 Update QEMU launch scripts to use SPL as -bios
+- [x] T008 Verify SPL → OpenSBI → U-Boot → Linux chain with wg=off
 
 ---
 
