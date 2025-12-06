@@ -62,10 +62,10 @@ Implementation tasks for moving WorldGuard initialization from OpenSBI to U-Boot
 
 ### Tasks
 
-- [ ] T009 [US1] Implement DT-first detection logic in sources/u-boot/board/qemu-riscv/spl/worldguard.c
-- [ ] T010 [US1] Add safe exit when riscv,worldguard DT node absent
-- [ ] T011 [US1] Test boot with wg=off (verify silent operation)
-- [ ] T012 [US1] Test boot with no WorldGuard DT node (verify no crashes)
+- [x] T009 [US1] Implement DT-first detection logic in sources/u-boot/board/emulation/qemu-riscv/spl/worldguard.c
+- [x] T010 [US1] Add safe exit when riscv,worldguard DT node absent
+- [x] T011 [US1] Test boot with wg=off (verify silent operation)
+- [x] T012 [US1] Test boot with no WorldGuard DT node (verify no crashes)
 
 ---
 
