@@ -51,3 +51,42 @@ WorldGuard patches were cherry-picked from `cwshu/qemu` branch `riscv-wg-v3` and
 
 - [RISC-V WorldGuard Specification](https://github.com/riscv/riscv-worldguard)
 - [cwshu/qemu WorldGuard Implementation](https://github.com/cwshu/qemu/tree/riscv-wg-v3)
+
+---
+
+## OpenSBI WorldGuard Integration
+
+OpenSBI (v1.7) has been patched to support WorldGuard CSR initialization.
+
+### Features
+
+- **CSR Initialization**: Sets mlwid (trusted WID) and mwiddeleg (WID delegation)
+- **Device Tree Parsing**: Reads configuration from `riscv,worldguard` DT node
+- **wgChecker Programming**: Programs memory protection slots from DT
+
+### OpenSBI Boot Log
+
+When WorldGuard is enabled:
+```
+WorldGuard: detected, current mlwid=3
+WorldGuard: enabled, mlwid=3, mwiddeleg=0x6
+```
+
+### Device Tree Configuration
+
+Add to your DTS:
+```dts
+worldguard {
+    compatible = "riscv,worldguard";
+    nworlds = <4>;
+    trustedwid = <3>;
+    mwiddeleg = <0x6>;
+};
+```
+
+### Files Modified in OpenSBI
+
+- `include/sbi/riscv_worldguard.h` - CSR and MMIO definitions
+- `lib/sbi/sbi_worldguard.c` - Initialization module
+- `lib/sbi/sbi_init.c` - Init call integration
+- `lib/sbi/objects.mk` - Build system

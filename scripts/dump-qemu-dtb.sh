@@ -23,7 +23,7 @@ echo "Dumping QEMU virt DTB with WorldGuard enabled..."
 
 # Run QEMU to dump DTB (with WorldGuard enabled)
 $QEMU \
-    -M virt,wg=on,wg-nworlds=4,wg-trustedwid=3,dumpdtb="$DTB_FILE" \
+    -M virt,wg=on,dumpdtb="$DTB_FILE" \
     -m 2G \
     -smp 1 \
     -nographic

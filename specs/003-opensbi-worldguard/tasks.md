@@ -58,12 +58,12 @@
 
 ### Implementation
 
-- [ ] T012 [US2] Dump QEMU DTB with `scripts/dump-qemu-dtb.sh` to `dts/qemu-virt.dts`
-- [ ] T013 [US2] Create WorldGuard DTS overlay at `dts/worldguard-overlay.dts`
-- [ ] T014 [US2] Add FDT parsing to `sources/opensbi/lib/sbi/sbi_worldguard.c` for `riscv,worldguard` node
-- [ ] T015 [US2] Implement `nworlds`, `trustedwid` property parsing in `sbi_worldguard.c`
-- [ ] T016 [US2] Test with modified DTS - change `trustedwid` and verify `mlwid` value in log
-- [ ] T017 [US2] Test with missing WorldGuard DT node - verify silent skip
+- [x] T012 [US2] Dump QEMU DTB with `scripts/dump-qemu-dtb.sh` to `dts/qemu-virt.dts`
+- [x] T013 [US2] Create WorldGuard DTS overlay at `dts/worldguard-overlay.dts`
+- [x] T014 [US2] Add FDT parsing to `sources/opensbi/lib/sbi/sbi_worldguard.c` for `riscv,worldguard` node
+- [x] T015 [US2] Implement `nworlds`, `trustedwid` property parsing in `sbi_worldguard.c`
+- [x] T016 [US2] Test with modified DTS - change `trustedwid` and verify `mlwid` value in log
+- [x] T017 [US2] Test with missing WorldGuard DT node - verify silent skip
 
 ---
 
@@ -77,11 +77,11 @@
 
 ### Implementation
 
-- [ ] T018 [US3] Add wgChecker register definitions to `sources/opensbi/include/sbi/riscv_worldguard.h`
-- [ ] T019 [US3] Implement wgChecker slot parsing from DT (`slots = <addr size perm>` array)
-- [ ] T020 [US3] Implement wgChecker MMIO programming in `sbi_worldguard.c`
-- [ ] T021 [US3] Add slot lock bit setting after programming
-- [ ] T022 [US3] Test wgChecker slot programming with QEMU debug output
+- [x] T018 [US3] Add wgChecker register definitions to `sources/opensbi/include/sbi/riscv_worldguard.h`
+- [x] T019 [US3] Implement wgChecker slot parsing from DT (`slots = <addr size perm>` array)
+- [x] T020 [US3] Implement wgChecker MMIO programming in `sbi_worldguard.c`
+- [x] T021 [US3] Add slot lock bit setting after programming
+- [x] T022 [US3] Test wgChecker slot programming with QEMU debug output
 
 ---
 
@@ -89,8 +89,8 @@
 
 **Goal**: 최종 검증 및 문서화
 
-- [ ] T023 Full boot test: OpenSBI → U-Boot → Linux → Buildroot login with WorldGuard enabled
-- [ ] T024 Update `docs/worldguard.md` with OpenSBI integration documentation
+- [x] T023 Full boot test: OpenSBI → U-Boot → Linux → Buildroot login with WorldGuard enabled
+- [x] T024 Update `docs/worldguard.md` with OpenSBI integration documentation
 
 ---
 

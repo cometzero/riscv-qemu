@@ -1,0 +1,57 @@
+/*
+ * WorldGuard Device Tree Overlay for QEMU virt machine
+ *
+ * Usage:
+ * 1. Dump QEMU DTB: ./scripts/dump-qemu-dtb.sh
+ * 2. Include this overlay in the DTS
+ * 3. Compile: dtc -I dts -O dtb -o worldguard.dtb combined.dts
+ * 4. Boot with: -dtb worldguard.dtb
+ */
+
+/ {
+	worldguard: worldguard {
+		compatible = "riscv,worldguard";
+		
+		/* Number of World IDs supported */
+		nworlds = <4>;
+		
+		/* Trusted World ID for M-mode */
+		trustedwid = <3>;
+		
+		/* WID assignments by mode */
+		wid-assignment = <3 2 1>;  /* M-mode=3, S-mode=2, U-mode=1 */
+		
+		/* WID delegation to S-mode (bit mask) */
+		mwiddeleg = <0x6>;  /* Delegate WID 1,2 to S-mode */
+		
+		status = "okay";
+	};
+	
+	/* Example wgChecker for DRAM */
+	wgchecker_dram: wgchecker@6000000 {
+		compatible = "riscv,wgchecker";
+		reg = <0x0 0x6000000 0x0 0x1000>;
+		
+		/*
+		 * Slot format: <addr_hi addr_lo size_hi size_lo perm cfg>
+		 * perm: Each world gets 2 bits (RW)
+		 *       WID3=bits[7:6], WID2=bits[5:4], WID1=bits[3:2], WID0=bits[1:0]
+		 * cfg:  0=OFF, 1=TOR, 2=NA4, 3=NAPOT, bit7=Lock
+		 */
+		slots = <
+			/* Slot 1: Shared region (0x80000000-0xA0000000) - All RW */
+			0x0 0x80000000 0x0 0x20000000 0xFF 0x1
+			
+			/* Slot 2: M-mode region (0xA0000000-0xB0000000) - W0,W3 RW */
+			0x0 0xA0000000 0x0 0x10000000 0xC3 0x1
+			
+			/* Slot 3: S-mode region (0xB0000000-0xC0000000) - W0,W2,W3 RW */
+			0x0 0xB0000000 0x0 0x10000000 0xF3 0x1
+			
+			/* Slot 4: U-mode region (0xC0000000-0xD0000000) - W0,W1,W3 RW */
+			0x0 0xC0000000 0x0 0x10000000 0xCF 0x1
+		>;
+		
+		status = "okay";
+	};
+};
