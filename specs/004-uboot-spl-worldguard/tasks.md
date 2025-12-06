@@ -112,11 +112,11 @@ Implementation tasks for moving WorldGuard initialization from OpenSBI to U-Boot
 
 ### Tasks
 
-- [ ] T021 [US3] Add wgChecker MMIO definitions to sources/u-boot/board/qemu-riscv/spl/worldguard.h
-- [ ] T022 [US3] Implement FDT slot parsing for riscv,wgchecker node
-- [ ] T023 [US3] Implement MMIO register programming (address, perm, cfg)
-- [ ] T024 [US3] Add conditional lock bit logic based on worldguard,lock-slots property
-- [ ] T025 [US3] Add slot programming logging (addr, perm, cfg per slot)
+- [x] T021 [US3] Add wgChecker MMIO definitions to sources/u-boot/board/emulation/qemu-riscv/spl/worldguard.h
+- [x] T022 [US3] Implement FDT slot parsing for riscv,wgchecker node
+- [x] T023 [US3] Implement MMIO register programming (address, perm, cfg)
+- [x] T024 [US3] Add conditional lock bit logic based on worldguard,lock-slots property
+- [x] T025 [US3] Add slot programming logging (addr, perm, cfg per slot)
 - [ ] T026 [US3] Test with custom DTB containing 3 wgChecker slots
 - [ ] T027 [US3] Verify slot addresses and permissions in logs
 - [ ] T028 [US3] Test lock-slots=true (default behavior)
