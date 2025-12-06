@@ -23,10 +23,10 @@
 
 **Goal**: OpenSBI 빌드 환경 확인 및 WorldGuard 개발 준비
 
-- [ ] T001 Verify OpenSBI source exists at `sources/opensbi/`
-- [ ] T002 [P] Test baseline OpenSBI build with `make PLATFORM=generic CROSS_COMPILE=riscv64-linux-gnu-`
-- [ ] T003 [P] Verify QEMU WorldGuard support with `./scripts/run-qemu-worldguard.sh` boots to U-Boot
-- [ ] T004 Create QEMU DTB dump script at `scripts/dump-qemu-dtb.sh`
+- [x] T001 Verify OpenSBI source exists at `sources/opensbi/`
+- [x] T002 [P] Test baseline OpenSBI build with `make PLATFORM=generic CROSS_COMPILE=riscv64-linux-gnu-`
+- [x] T003 [P] Verify QEMU WorldGuard support with `./scripts/run-qemu-worldguard.sh` boots to U-Boot
+- [x] T004 Create QEMU DTB dump script at `scripts/dump-qemu-dtb.sh`
 
 ---
 
@@ -38,13 +38,13 @@
 
 ### Implementation
 
-- [ ] T005 [US1] Create WorldGuard CSR header at `sources/opensbi/include/sbi/riscv_worldguard.h`
-- [ ] T006 [US1] Implement WorldGuard init module at `sources/opensbi/lib/sbi/sbi_worldguard.c`
-- [ ] T007 [US1] Add WorldGuard object to build system at `sources/opensbi/lib/sbi/objects.mk`
-- [ ] T008 [US1] Add WorldGuard init call to `sources/opensbi/lib/sbi/sbi_init.c` in `init_coldboot()`
-- [ ] T009 [US1] Build OpenSBI with WorldGuard support
-- [ ] T010 [US1] Test WorldGuard enabled boot with `wg=on` - verify log output
-- [ ] T011 [US1] Test WorldGuard disabled boot (no `wg` option) - verify silent skip
+- [x] T005 [US1] Create WorldGuard CSR header at `sources/opensbi/include/sbi/riscv_worldguard.h`
+- [x] T006 [US1] Implement WorldGuard init module at `sources/opensbi/lib/sbi/sbi_worldguard.c`
+- [x] T007 [US1] Add WorldGuard object to build system at `sources/opensbi/lib/sbi/objects.mk`
+- [x] T008 [US1] Add WorldGuard init call to `sources/opensbi/lib/sbi/sbi_init.c` in `init_coldboot()`
+- [x] T009 [US1] Build OpenSBI with WorldGuard support
+- [x] T010 [US1] Test WorldGuard enabled boot with `wg=on` - verify log output
+- [x] T011 [US1] Test WorldGuard disabled boot (no `wg` option) - verify silent skip
 
 ---
 
@@ -162,8 +162,8 @@ T017 ─┘
 
 **Verification**:
 1. OpenSBI 빌드 성공
-2. `wg=on`으로 부팅 시 로그에 `WorldGuard: enabled, mlwid=3, slwid=2` 출력
-3. `wg=off`로 부팅 시 WorldGuard 관련 로그 없음
+2. `wg=on`으로 부팅 시 로그에 `WorldGuard: enabled, mlwid=3, mwiddeleg=0x6` 출력 ✓
+3. `wg=off`로 부팅 시 WorldGuard 관련 로그 없음 ✓
 
 ### Incremental Delivery
 
