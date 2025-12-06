@@ -117,10 +117,10 @@ Implementation tasks for moving WorldGuard initialization from OpenSBI to U-Boot
 - [x] T023 [US3] Implement MMIO register programming (address, perm, cfg)
 - [x] T024 [US3] Add conditional lock bit logic based on worldguard,lock-slots property
 - [x] T025 [US3] Add slot programming logging (addr, perm, cfg per slot)
-- [ ] T026 [US3] Test with custom DTB containing 3 wgChecker slots
-- [ ] T027 [US3] Verify slot addresses and permissions in logs
-- [ ] T028 [US3] Test lock-slots=true (default behavior)
-- [ ] T029 [US3] Test lock-slots=false (conditional locking)
+- [x] T026 [US3] Test with custom DTB containing 3 wgChecker slots
+- [x] T027 [US3] Verify slot addresses and permissions in logs
+- [x] T028 [US3] Test lock-slots=true (default behavior)
+- [x] T029 [US3] Test lock-slots=false (conditional locking)
 
 ---
 
