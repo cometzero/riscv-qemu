@@ -85,14 +85,14 @@ Implementation tasks for moving WorldGuard initialization from OpenSBI to U-Boot
 
 ### Tasks
 
-- [ ] T013 [US2] Create WorldGuard CSR definitions in sources/u-boot/board/qemu-riscv/spl/worldguard.h
-- [ ] T014 [US2] Implement spl_worldguard_detect() function
-- [ ] T015 [US2] Implement spl_worldguard_init_csrs() to set mlwid and mwiddeleg
-- [ ] T016 [US2] Parse nworlds, trustedwid, mwiddeleg from DT
-- [ ] T017 [US2] Add SPL console logging for WorldGuard detection
-- [ ] T018 [US2] Call spl_worldguard_init() from board_init_f()
-- [ ] T019 [US2] Test CSR initialization with wg=on (verify mlwid=3, mwiddeleg=0x6)
-- [ ] T020 [US2] Verify OpenSBI boots after SPL WorldGuard init
+- [x] T013 [US2] Create WorldGuard CSR definitions in sources/u-boot/board/emulation/qemu-riscv/spl/worldguard.h
+- [x] T014 [US2] Implement spl_worldguard_detect() function
+- [x] T015 [US2] Implement spl_worldguard_init_csrs() to set mlwid and mwiddeleg
+- [x] T016 [US2] Parse nworlds, trustedwid, mwiddeleg from DT
+- [x] T017 [US2] Add SPL console logging for WorldGuard detection
+- [x] T018 [US2] Call spl_worldguard_init() from board_init_f()
+- [x] T019 [US2] Test CSR initialization with wg=on (verify mlwid=3, mwiddeleg=0x6)
+- [x] T020 [US2] Verify OpenSBI boots after SPL WorldGuard init
 
 ---
 
