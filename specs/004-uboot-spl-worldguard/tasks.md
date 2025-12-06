@@ -138,17 +138,17 @@ Implementation tasks for moving WorldGuard initialization from OpenSBI to U-Boot
 
 ### Tasks
 
-- [ ] T030 Create FDT merging module in sources/u-boot/board/qemu-riscv/spl/fdt_merge.c
-- [ ] T031 Allocate 128KB static DTB buffer in SPL BSS section
-- [ ] T032 Implement spl_create_merged_dtb() function
-- [ ] T033 Add worldguard,spl-initialized property to new DTB
-- [ ] T034 Add worldguard,mlwid and worldguard,mwiddeleg properties
-- [ ] T035 Pass new DTB to OpenSBI during payload load
-- [ ] T036 Modify OpenSBI sources/opensbi/lib/sbi/sbi_worldguard.c to check spl-initialized
-- [ ] T037 OpenSBI: Skip CSR programming if spl-initialized=1
-- [ ] T038 OpenSBI: Log SPL configuration values
-- [ ] T039 Test DTB property presence in OpenSBI
-- [ ] T040 Verify OpenSBI skips init when SPL ran
+- [x] T030 Create FDT merging module in sources/u-boot/board/emulation/qemu-riscv/spl/fdt_merge.c
+- [x] T031 Allocate 128KB static DTB buffer in SPL BSS section
+- [x] T032 Implement spl_create_merged_dtb() function
+- [x] T033 Add worldguard,spl-initialized property to new DTB
+- [x] T034 Add worldguard,mlwid and worldguard,mwiddeleg properties
+- [x] T035 Pass new DTB to OpenSBI during payload load
+- [x] T036 Modify OpenSBI sources/opensbi/lib/sbi/sbi_worldguard.c to check spl-initialized
+- [x] T037 OpenSBI: Skip CSR programming if spl-initialized=1
+- [x] T038 OpenSBI: Log SPL configuration values
+- [x] T039 Test DTB property presence in OpenSBI
+- [x] T040 Verify OpenSBI skips init when SPL ran
 
 ---
 
