@@ -15,6 +15,16 @@ OpenSBI에 RISC-V WorldGuard 지원을 추가합니다. WorldGuard는 하드웨�
 
 OpenSBI는 M-mode에서 실행되어 WorldGuard CSR(mlwid, slwid, mwiddeleg)을 초기화하고, 필요시 wgChecker MMIO를 구성합니다.
 
+## Clarifications
+
+### Session 2025-12-06
+
+- Q: Device Tree 노드 생성 위치? → A: QEMU가 생성하는 DTB를 dump하여 DTS로 변환 후 수동 편집하여 사용
+- Q: mwiddeleg 초기값? → A: 0x6 (WID 1,2를 S-mode에 위임, S+U mode 모두 관리)
+- Q: WorldGuard CSR 감지 방법? → A: QEMU wg=on 옵션이 생성하는 Device Tree 노드 존재 여부로 확인
+- Q: wgChecker 슬롯 DT 인코딩? → A: reg 스타일 배열 `slots = <addr size perm>` 형식 사용
+- Q: WorldGuard 비활성화 시 동작? → A: Silent skip - 로그 없이 조용히 건너뛰어 기존 부팅 흐름 유지
+
 ## Prerequisites
 
 - QEMU v10.1.3 + WorldGuard 패치 (002-qemu-worldguard에서 완료)
@@ -83,18 +93,20 @@ OpenSBI는 M-mode에서 실행되어 WorldGuard CSR(mlwid, slwid, mwiddeleg)을 
 ### Functional Requirements
 
 #### Phase 1: 테스트 코드
-- **FR-001**: OpenSBI는 WorldGuard CSR(mlwid, slwid, mwiddeleg)의 존재를 감지할 수 있어야 함
+- **FR-001**: OpenSBI는 Device Tree에서 WorldGuard 노드 존재 여부로 기능을 감지해야 함
 - **FR-002**: OpenSBI는 mlwid를 trustedwid(기본값 3)로 설정해야 함
 - **FR-003**: OpenSBI는 slwid를 S-mode용 WID(기본값 2)로 설정해야 함
-- **FR-004**: OpenSBI는 mwiddeleg를 설정하여 S-mode가 사용할 WID를 위임해야 함
+- **FR-004**: OpenSBI는 mwiddeleg를 0x6으로 설정하여 WID 1,2를 S-mode에 위임해야 함
 - **FR-005**: WorldGuard 초기화 결과를 부팅 로그에 출력해야 함
+- **FR-006**: WorldGuard DT 노드가 없으면 로그 없이 조용히 건너뛰어야 함
 
 #### Phase 2: Device Tree 통합
-- **FR-006**: OpenSBI는 Device Tree에서 `riscv,worldguard` 노드를 파싱할 수 있어야 함
-- **FR-007**: `nworlds`, `trustedwid` 속성을 읽어 CSR 설정에 반영해야 함
-- **FR-008**: `wid-assignment` 속성을 통해 각 모드(M/S/U)의 WID를 설정할 수 있어야 함
-- **FR-009**: Device Tree에서 wgChecker 슬롯 정의를 읽어 MMIO에 프로그래밍해야 함
-- **FR-010**: 슬롯별 address, permission, config(TOR/NAPOT/OFF/Lock) 설정을 지원해야 함
+- **FR-007**: QEMU DTB를 dump하여 DTS로 변환 후 WorldGuard 노드를 수동 편집하여 사용
+- **FR-008**: OpenSBI는 Device Tree에서 `riscv,worldguard` 노드를 파싱할 수 있어야 함
+- **FR-009**: `nworlds`, `trustedwid` 속성을 읽어 CSR 설정에 반영해야 함
+- **FR-010**: `wid-assignment` 속성을 통해 각 모드(M/S/U)의 WID를 설정할 수 있어야 함
+- **FR-011**: Device Tree에서 wgChecker 슬롯 정의를 `slots = <addr size perm>` 배열로 읽어 MMIO에 프로그래밍해야 함
+- **FR-012**: 슬롯별 address, permission, config(TOR/NAPOT/OFF/Lock) 설정을 지원해야 함
 
 ### Non-Functional Requirements
 
