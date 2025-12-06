@@ -83,6 +83,32 @@ risc-v/
 - [QEMU Guide](docs/qemu.md): How to run and use QEMU.
 - [Custom Rootfs Guide](docs/custom-rootfs.md): Adding packages and customizing the rootfs.
 - [Version Management](docs/version-management.md): Managing submodules and versions.
+- [WorldGuard Guide](docs/worldguard.md): RISC-V WorldGuard integration.
+
+## WorldGuard Boot Modes
+
+This project supports RISC-V WorldGuard hardware isolation:
+
+### Mode 1: Direct Boot (OpenSBI as BIOS)
+
+```bash
+./scripts/run-qemu-worldguard.sh
+# Or manually:
+qemu-system-riscv64 -M virt,wg=on \
+    -bios fw_dynamic.bin -kernel u-boot.bin -dtb qemu-virt-worldguard.dtb
+```
+
+### Mode 2: SPL Boot Chain
+
+```bash
+qemu-system-riscv64 -M virt,wg=on \
+    -kernel u-boot-spl.bin \
+    -device loader,file=u-boot-spl.itb,addr=0x80200000
+```
+
+Boot chain: `SPL → OpenSBI → U-Boot → Linux`
+
+See [WorldGuard Guide](docs/worldguard.md) for details.
 
 ## Development Workflow
 

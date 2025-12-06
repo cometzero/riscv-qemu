@@ -69,3 +69,47 @@ For faster development, use the rebuild scripts which skip the configuration ste
 - `make opensbi-rebuild`
 - `make linux-rebuild`
 - `make buildroot-rebuild`
+
+## U-Boot SPL with WorldGuard
+
+### Building SPL
+
+```bash
+cd sources/u-boot
+make CROSS_COMPILE=riscv64-linux-gnu- qemu-riscv64_spl_defconfig
+make CROSS_COMPILE=riscv64-linux-gnu- -j$(nproc)
+```
+
+**Outputs**:
+- `spl/u-boot-spl.bin` - SPL binary (~40KB)
+- `u-boot.bin` - U-Boot proper
+
+### Creating FIT Image
+
+```bash
+mkdir -p build/fit
+cd build/fit
+
+# Copy components
+cp ../opensbi/platform/generic/firmware/fw_dynamic.bin .
+cp ../../sources/u-boot/u-boot-nodtb.bin .
+cp ../../dts/qemu-virt-worldguard.dtb .
+
+# Create FIT image
+../../sources/u-boot/tools/mkimage -f fit-opensbi-uboot.its u-boot-spl.itb
+```
+
+**Output**: `u-boot-spl.itb` (~885KB)
+
+### SPL Configuration Options
+
+Key configs in `qemu-riscv64_spl_defconfig`:
+
+```
+CONFIG_SPL=y
+CONFIG_SPL_OPENSBI=y
+CONFIG_SPL_LOAD_FIT=y
+CONFIG_SPL_RAM_SUPPORT=y
+CONFIG_SPL_TEXT_BASE=0x81000000
+```
+

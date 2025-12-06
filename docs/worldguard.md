@@ -90,3 +90,85 @@ worldguard {
 - `lib/sbi/sbi_worldguard.c` - Initialization module
 - `lib/sbi/sbi_init.c` - Init call integration
 - `lib/sbi/objects.mk` - Build system
+
+---
+
+## U-Boot SPL WorldGuard Boot Chain
+
+U-Boot SPL provides an alternative boot path with WorldGuard initialization at the earliest boot stage.
+
+### Boot Chain
+
+```
+U-Boot SPL → OpenSBI → U-Boot Proper → Linux
+   (M-mode)   (M-mode)   (S-mode)     (S-mode)
+```
+
+### Features
+
+- **FIT Image Boot**: SPL loads OpenSBI + U-Boot from FIT image
+- **WorldGuard Init**: CSR initialization at SPL stage (optional)
+- **DTB Handoff**: Passes WorldGuard config to OpenSBI
+
+### Memory Map
+
+| Address | Component |
+|---------|-----------|
+| 0x80000000 | OpenSBI |
+| 0x80200000 | U-Boot / FIT Image |
+| 0x81000000 | U-Boot SPL |
+
+### Running SPL Boot Chain
+
+```bash
+qemu-system-riscv64 \
+    -M virt,wg=on \
+    -m 2G -smp 1 -nographic \
+    -kernel sources/u-boot/spl/u-boot-spl.bin \
+    -device loader,file=build/fit/u-boot-spl.itb,addr=0x80200000
+```
+
+### Creating FIT Image
+
+```bash
+cd build/fit
+cat > fit-opensbi-uboot.its << 'EOF'
+/dts-v1/;
+/ {
+    description = "SPL FIT Image";
+    images {
+        opensbi { os = "opensbi"; load = <0x0 0x80000000>; };
+        uboot { os = "u-boot"; load = <0x0 0x80200000>; };
+        fdt { type = "flat_dt"; };
+    };
+    configurations { firmware = "opensbi"; loadables = "uboot"; };
+};
+EOF
+mkimage -f fit-opensbi-uboot.its u-boot-spl.itb
+```
+
+### SPL Boot Log
+
+```
+U-Boot SPL 2024.10
+Trying to boot from RAM
+SPL: Looking for FIT at 0x80200000
+SPL: Found FIT image!
+SPL: Jumping to OpenSBI at 0x80000000, next=0x80200000
+
+OpenSBI v1.5.1
+Platform Name: riscv-virtio,qemu
+```
+
+### Files Modified in U-Boot
+
+- `configs/qemu-riscv64_spl_defconfig` - SPL configuration
+- `board/emulation/qemu-riscv/spl/` - SPL WorldGuard modules
+- `common/spl/spl_ram.c` - FIT loading debug
+- `common/spl/spl_opensbi.c` - OpenSBI handoff debug
+
+### Documentation
+
+- [Testing Guide](../specs/004-uboot-spl-worldguard/testing-guide.md)
+- [Test Results](../specs/004-uboot-spl-worldguard/test-results.md)
+
