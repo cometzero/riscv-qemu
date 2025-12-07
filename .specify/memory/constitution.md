@@ -2,27 +2,23 @@
 =============================================================================
 Sync Impact Report
 =============================================================================
-Version change: N/A → 1.0.0 (initial ratification)
+Version change: 1.0.0 → 1.0.1
 
-Modified Principles: N/A (initial creation)
+Modified Principles:
+  - XI. Signed-off-by (DCO): Added requirement to use `git commit -s` flag
 
-Added Sections:
-  - Values (3 principles)
-  - Coding and Change Principles (4 principles)
-  - Git and Version Control Rules (5 principles)
-  - Repository Layout (5 directory definitions)
-  - Build & Logging Rules (4 principles)
-  - Testing Discipline (5 principles)
-  - Configuration-First Policy (3 principles)
-  - Governance
+Added Sections: None
+
+Removed Sections: None
 
 Templates requiring updates:
-  ✅ plan-template.md - Generic template compatible with new constitution
-  ✅ spec-template.md - Generic template compatible with new constitution
-  ✅ tasks-template.md - Generic template compatible with new constitution
+  ✅ plan-template.md - No changes needed
+  ✅ spec-template.md - No changes needed
+  ✅ tasks-template.md - No changes needed
 
 Follow-up TODOs: None
 =============================================================================
+-->
 -->
 
 # riscv-qemu-bootflow Constitution
@@ -132,8 +128,11 @@ Each commit MUST represent one logical change.
 
 Every commit MUST include a Signed-off-by line complying with the Developer Certificate of Origin.
 
+- Use `git commit -s` to automatically add Signed-off-by matching the Author
+- The Signed-off-by identity MUST match the commit Author (same name and email)
+
 ```
-Signed-off-by: Developer Name <developer@example.com>
+Signed-off-by: Chanho Park <parkch98@gmail.com>
 ```
 
 ### XII. Commit Content Requirements
@@ -344,4 +343,4 @@ This constitution supersedes all other development practices for this project.
 - When in doubt, prefer the simpler and more transparent approach
 - Ask for clarification rather than assuming compliance
 
-**Version**: 1.0.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2025-12-07
+**Version**: 1.0.1 | **Ratified**: 2025-12-07 | **Last Amended**: 2025-12-07
