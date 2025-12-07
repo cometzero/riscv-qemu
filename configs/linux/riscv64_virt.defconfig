@@ -1,0 +1,33 @@
+# Linux kernel defconfig for RISC-V QEMU virt machine
+# Based on arch/riscv/configs/defconfig with minimal additions
+
+# Use default RISC-V defconfig as base
+# Additional options for QEMU virt:
+
+CONFIG_RISCV=y
+CONFIG_64BIT=y
+CONFIG_SMP=y
+
+# Serial console
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_SERIAL_EARLYCON_RISCV_SBI=y
+
+# Initramfs support
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_INITRAMFS_SOURCE=""
+CONFIG_RD_GZIP=y
+CONFIG_RD_BZIP2=y
+CONFIG_RD_LZMA=y
+CONFIG_RD_XZ=y
+CONFIG_RD_LZO=y
+CONFIG_RD_LZ4=y
+CONFIG_RD_ZSTD=y
+
+# VirtIO for QEMU
+CONFIG_VIRTIO=y
+CONFIG_VIRTIO_PCI=y
+CONFIG_VIRTIO_MMIO=y
+CONFIG_VIRTIO_BLK=y
+CONFIG_VIRTIO_NET=y
+CONFIG_VIRTIO_CONSOLE=y

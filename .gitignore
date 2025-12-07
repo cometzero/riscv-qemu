@@ -1,0 +1,20 @@
+# Created by speckit implementation
+# RISC-V QEMU Boot Flow Project
+
+# Build outputs
+build/
+
+# Editor and IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log

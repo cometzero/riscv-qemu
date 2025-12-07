@@ -1,0 +1,8 @@
+# Linux kernel bootargs configuration fragment
+# Merged into kernel config during build
+
+# Console configuration
+CONFIG_CMDLINE="console=ttyS0 earlycon=sbi"
+
+# Built-in command line
+CONFIG_CMDLINE_FORCE=y
