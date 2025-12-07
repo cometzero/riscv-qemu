@@ -1,50 +1,347 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+=============================================================================
+Sync Impact Report
+=============================================================================
+Version change: N/A → 1.0.0 (initial ratification)
 
-## Core Principles
+Modified Principles: N/A (initial creation)
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+Added Sections:
+  - Values (3 principles)
+  - Coding and Change Principles (4 principles)
+  - Git and Version Control Rules (5 principles)
+  - Repository Layout (5 directory definitions)
+  - Build & Logging Rules (4 principles)
+  - Testing Discipline (5 principles)
+  - Configuration-First Policy (3 principles)
+  - Governance
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Templates requiring updates:
+  ✅ plan-template.md - Generic template compatible with new constitution
+  ✅ spec-template.md - Generic template compatible with new constitution
+  ✅ tasks-template.md - Generic template compatible with new constitution
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+Follow-up TODOs: None
+=============================================================================
+-->
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+# riscv-qemu-bootflow Constitution
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+This constitution defines the development workflow, quality standards, and guiding principles for the RISC-V QEMU boot flow project. It governs all boot chain components: QEMU, U-Boot (SPL + proper), OpenSBI, Linux Kernel, and Buildroot rootfs.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Values
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### I. Clarity and Reproducibility
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Every aspect of this project MUST prioritize clarity and reproducibility over cleverness.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+- All builds MUST be deterministic and reproducible from a clean state
+- Configuration and build steps MUST be scripted, not performed ad-hoc
+- Complex solutions require explicit justification; simple approaches are preferred
+
+### II. Traceable Boot Flow
+
+The boot flow MUST remain easy to understand and trace from BootROM to userspace shell.
+
+- The boot sequence `QEMU BootROM → U-Boot SPL → OpenSBI → U-Boot proper → Linux Kernel → Buildroot rootfs` MUST be clearly documented
+- Each handoff between boot stages MUST be observable and verifiable via boot logs
+- Deviations from standard boot behavior MUST be documented with rationale
+
+### III. Document Decisions
+
+All decisions and deviations from upstream behavior MUST be documented.
+
+- Non-obvious configuration choices MUST be recorded in `./docs`
+- Local patches MUST include a commit message explaining why upstream defaults are insufficient
+- Changes to the boot flow MUST be reflected in updated documentation before merge
+
+## Coding and Change Principles
+
+### IV. Follow Upstream Guidelines
+
+All local patches MUST follow the upstream coding guidelines for each component.
+
+- Linux kernel patches: Follow Documentation/process/coding-style.rst
+- U-Boot patches: Follow doc/develop/codingstyle.rst
+- OpenSBI patches: Follow OpenSBI coding conventions
+- QEMU patches: Follow QEMU coding style
+- Patches SHOULD be written in upstreamable style even if not intended for submission
+
+### V. Configuration Before Code
+
+Desired behavior MUST be achieved through configuration changes before resorting to source code modifications.
+
+**Order of preference**:
+1. Kconfig / `.config` / defconfig changes
+2. Device Tree Source (DTS) modifications
+3. Command-line options (kernel cmdline, QEMU args)
+4. Environment variables
+5. Source code changes (last resort)
+
+### VI. Minimal Local Patches
+
+Local patches MUST be minimal and well-justified.
+
+- Each patch MUST represent the smallest change needed to achieve the goal
+- Patches MUST NOT include unrelated changes (no style fixes mixed with functional changes)
+- Temporary debug code MUST NOT be committed to the main branch
+
+### VII. Justify Code Changes
+
+Source code modifications are permitted only when configuration is insufficient.
+
+- The commit message MUST explain why configuration was insufficient
+- The commit message MUST describe what alternatives were considered
+- Complex patches SHOULD include inline comments explaining non-obvious logic
+
+## Git and Version Control Rules
+
+### VIII. Git Submodules Structure
+
+The project MUST use Git with submodules for all boot components under a single top-level repository.
+
+- Each upstream component (QEMU, U-Boot, OpenSBI, Linux, Buildroot) MUST be a Git submodule under `./sources/`
+- Submodules MUST point to specific commits (tags or known-good commits), not branches
+- Updating a submodule MUST be a separate commit with rationale
+
+### IX. Commit Message Format
+
+All commit messages MUST follow the 50/72 rule and be written in English.
+
+**Format**:
+```
+<summary line: ≤50 chars, imperative mood>
+
+<body: wrapped at 72 columns>
+- Explain the motivation/intention of the change
+- Describe what was changed technically
+- Reference relevant issues or documentation
+
+Signed-off-by: Name <email>
+```
+
+### X. Atomic Commits
+
+Each commit MUST represent one logical change.
+
+- One feature, one fix, or one refactor per commit
+- Do NOT mix unrelated changes (e.g., style cleanups + functional changes)
+- Large changes SHOULD be split into a series of smaller, reviewable commits
+
+### XI. Signed-off-by (DCO)
+
+Every commit MUST include a Signed-off-by line complying with the Developer Certificate of Origin.
+
+```
+Signed-off-by: Developer Name <developer@example.com>
+```
+
+### XII. Commit Content Requirements
+
+Commit messages MUST state both intention and technical changes.
+
+- **Intention**: Why is this change being made? What problem does it solve?
+- **Technical**: What files/functions were modified? How does the solution work?
+
+## Repository Layout
+
+### XIII. Directory Structure
+
+The top-level repository MUST maintain the following directory structure:
+
+```
+./
+├── docs/       # Design documents, boot flow descriptions, diagrams, HOWTOs
+├── sources/    # Git submodules: QEMU, U-Boot, OpenSBI, Linux, Buildroot
+├── build/      # All build outputs and intermediate artefacts
+├── test/       # Test scripts, log analyzers, expected-output definitions
+└── configs/    # .config, defconfig, DTS, QEMU run scripts/configs
+```
+
+### XIV. Source Purity
+
+Source trees MUST NOT be polluted by build outputs.
+
+- All build artefacts MUST be placed under `./build/`
+- Out-of-tree builds MUST be used where supported
+- If an upstream build system requires in-tree artefacts, document the exception in `./docs/build-exceptions.md`
+
+### XV. Build Directory Organization
+
+Build outputs MUST be organized by component under `./build/`:
+
+```
+./build/
+├── qemu/       # QEMU build outputs
+├── u-boot/     # U-Boot SPL and proper outputs
+├── opensbi/    # OpenSBI firmware outputs
+├── linux/      # Linux kernel outputs
+├── rootfs/     # Buildroot root filesystem outputs
+├── logs/       # Build logs
+└── test-logs/  # Test execution logs
+```
+
+### XVI. Configuration Version Control
+
+All configuration files MUST be version-controlled under `./configs/`:
+
+```
+./configs/
+├── qemu/           # QEMU machine configs, run scripts
+├── u-boot/         # U-Boot defconfig, environment
+├── opensbi/        # OpenSBI platform config
+├── linux/          # Kernel defconfig, fragments
+├── buildroot/      # Buildroot defconfig
+└── dts/            # Device Tree Sources
+```
+
+### XVII. Documentation Standards
+
+Documentation MUST reside in `./docs/` with clear organization:
+
+- `boot-flow.md`: Complete boot sequence description
+- `build-howto.md`: Step-by-step build instructions
+- `testing.md`: Test execution guide
+- Component-specific docs in subdirectories as needed
+
+## Build & Logging Rules
+
+### XVIII. Script-Driven Builds
+
+All builds MUST be driven by Bash-based build scripts.
+
+- No ad-hoc manual command sequences for reproducible builds
+- Scripts MUST be located in a well-known location (e.g., `./scripts/`)
+- Each script MUST have a `--help` option documenting usage
+
+### XIX. Build Granularity
+
+Build scripts MUST support multiple granularities:
+
+- **Per-component**: Build only QEMU, only U-Boot, only Linux, etc.
+- **Full chain**: Build all components in dependency order
+- **Clean operations**: Remove build artefacts without affecting source checkouts
+- **Distclean**: Deep clean including generated configs (with confirmation)
+
+### XX. Logging Discipline
+
+Build scripts MUST implement structured logging:
+
+- Detailed logs MUST be written to `./build/logs/<component>-<timestamp>.log`
+- Console output (stdout/stderr) MUST show only warnings and errors
+- Log files MUST capture full command output for debugging
+- Build start/end timestamps MUST be recorded
+
+### XXI. Exit Code Discipline
+
+Build scripts MUST return proper exit codes for CI integration:
+
+- Return `0` on success
+- Return non-zero on any failure
+- Fail fast: stop on first error unless explicitly running in continue-on-error mode
+- Scripts MUST be composable in CI pipelines
+
+## Testing Discipline
+
+### XXII. Primary Test Method
+
+The primary test is the QEMU boot log and QEMU exit status.
+
+- QEMU MUST be configured to exit with status code on kernel panic or boot failure
+- Boot logs MUST be captured to files for analysis
+- Tests MUST NOT depend on network connectivity
+
+### XXIII. Test Implementation
+
+Tests MAY be written in Python (preferred) or Bash.
+
+- Python tests SHOULD use standard library or minimal dependencies
+- Bash tests MUST be POSIX-compatible where possible
+- Test scripts MUST be executable and have a shebang line
+
+### XXIV. Boot Milestone Verification
+
+Tests MUST verify the following boot milestones:
+
+1. **U-Boot SPL**: Started successfully, performed memory initialization, handed off to OpenSBI
+2. **OpenSBI**: Initialized, reported version and platform information
+3. **U-Boot proper**: Loaded, reached command prompt or auto-booted kernel
+4. **Linux kernel**: Booted, reached userspace init
+5. **Buildroot**: Init started, login prompt or expected shell available
+
+### XXV. Pass/Fail Criteria
+
+Tests MUST implement clear pass/fail logic:
+
+**FAIL conditions** (any of these):
+- Kernel panic detected in boot log
+- Boot loop detected (repeated boot messages)
+- Expected milestone message missing
+- QEMU exits with non-zero status
+- Timeout before reaching expected milestone
+
+**PASS conditions** (all required):
+- All milestone messages present in correct order
+- QEMU exits cleanly (status 0) or reaches expected state
+- No error patterns detected in boot log
+
+### XXVI. Test Log Management
+
+Test outputs MUST be stored in `./build/test-logs/`:
+
+- `<test-name>-<timestamp>.log`: Full QEMU console output
+- `<test-name>-<timestamp>.result`: Pass/fail summary with milestone checklist
+- Test logs MUST be preserved for CI artifact collection
+
+## Configuration-First Policy
+
+### XXVII. Change Preference Order
+
+For any requested change, follow this order of preference:
+
+1. **Configuration files** (`./configs/`): Kconfig, defconfig, DTS, QEMU command line
+2. **Source code** (minimal patch): Only when configuration is demonstrably insufficient
+3. **Document the change**: Record non-obvious configurations in `./docs/`
+
+### XXVIII. Configuration Versioning
+
+All used configurations MUST be version-controlled.
+
+- No local-only config state; all configs committed to repository
+- Config changes MUST be separate commits with explanatory messages
+- Derived configs (e.g., full `.config` from defconfig) MAY be gitignored but MUST be reproducible
+
+### XXIX. Configuration Documentation
+
+Non-obvious configuration changes MUST be documented.
+
+- Document in `./docs/` or adjacent README files
+- Explain **why** the configuration was chosen, not just **what** it is
+- Cross-reference related configurations across components
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes all other development practices for this project.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Amendment Process**:
+1. Propose amendment with rationale in a Git commit
+2. Amendment requires explicit approval before merge
+3. Update version number according to semantic versioning rules
+4. Document migration plan if amendment affects existing work
+
+**Compliance**:
+- All pull requests MUST pass constitution compliance review
+- Reviewers MUST verify adherence to these principles
+- Non-compliance requires explicit justification and approval
+
+**Versioning Policy**:
+- MAJOR: Backward-incompatible principle changes or removals
+- MINOR: New principles added or existing principles materially expanded
+- PATCH: Clarifications, typo fixes, non-semantic refinements
+
+**Runtime Guidance**:
+- Use this constitution as the primary reference during development
+- When in doubt, prefer the simpler and more transparent approach
+- Ask for clarification rather than assuming compliance
+
+**Version**: 1.0.0 | **Ratified**: 2025-12-07 | **Last Amended**: 2025-12-07
