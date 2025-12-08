@@ -35,6 +35,14 @@ make \
     qemu-riscv64_spl_defconfig \
     >> "${LOG_FILE}" 2>&1
 
+# Apply custom boot configuration
+BOOT_CFG="${CONFIGS_DIR}/u-boot/qemu_boot.cfg"
+if [ -f "${BOOT_CFG}" ]; then
+    echo "[U-Boot] Applying custom boot config..."
+    cat "${BOOT_CFG}" >> "${UBOOT_BUILD}/.config"
+    make CROSS_COMPILE=${CROSS_COMPILE} O="${UBOOT_BUILD}" olddefconfig >> "${LOG_FILE}" 2>&1
+fi
+
 # Build U-Boot with OpenSBI for FIT image
 echo "[U-Boot] Building with ${NPROC} jobs..."
 make \
