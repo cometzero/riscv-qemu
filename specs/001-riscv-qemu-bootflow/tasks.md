@@ -15,13 +15,13 @@
 
 **Purpose**: Create project structure and initial documentation
 
-- [ ] T001 Create top-level directory structure: `./docs/`, `./sources/`, `./build/`, `./test/`, `./configs/`, `./scripts/`
-- [ ] T002 [P] Create `.gitignore` to ignore `./build/` directory
-- [ ] T003 [P] Create initial `README.md` with project overview and goals
-- [ ] T004 [P] Create placeholder `docs/boot-flow.md`
-- [ ] T005 [P] Create placeholder `docs/build-howto.md`
-- [ ] T006 [P] Create placeholder `docs/testing.md`
-- [ ] T007 [P] Create placeholder `docs/configuration.md`
+- [x] T001 Create top-level directory structure: `./docs/`, `./sources/`, `./build/`, `./test/`, `./configs/`, `./scripts/`
+- [x] T002 [P] Create `.gitignore` to ignore `./build/` directory
+- [x] T003 [P] Create initial `README.md` with project overview and goals
+- [x] T004 [P] Create placeholder `docs/boot-flow.md`
+- [x] T005 [P] Create placeholder `docs/build-howto.md`
+- [x] T006 [P] Create placeholder `docs/testing.md`
+- [x] T007 [P] Create placeholder `docs/configuration.md`
 
 **Checkpoint**: Directory structure in place, basic README committed
 
@@ -33,18 +33,18 @@
 
 ⚠️ **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T008 Add QEMU as Git submodule at `./sources/qemu` from `https://gitlab.com/qemu-project/qemu.git`
-- [ ] T009 Add U-Boot as Git submodule at `./sources/u-boot` from `https://source.denx.de/u-boot/u-boot.git`
-- [ ] T010 Add OpenSBI as Git submodule at `./sources/opensbi` from `https://github.com/riscv-software-src/opensbi.git`
-- [ ] T011 Add Linux kernel as Git submodule at `./sources/linux` from `https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git`
-- [ ] T012 Add Buildroot as Git submodule at `./sources/buildroot` from `https://git.buildroot.net/buildroot`
-- [ ] T013 Create environment setup script `scripts/env.sh` with ARCH, CROSS_COMPILE, paths
-- [ ] T014 Create prerequisite check script `scripts/check_prereqs.sh` that verifies required apt packages
-- [ ] T015 [P] Create config directory structure: `configs/qemu/`, `configs/u-boot/`, `configs/opensbi/`, `configs/linux/`, `configs/buildroot/`
-- [ ] T016 [P] Create QEMU run config file `configs/qemu/run_qemu.conf`
-- [ ] T017 [P] Create Linux kernel defconfig fragment `configs/linux/riscv64_virt.defconfig`
-- [ ] T018 [P] Create Linux bootargs fragment `configs/linux/bootargs.fragment`
-- [ ] T019 [P] Create Buildroot minimal defconfig `configs/buildroot/qemu_riscv64_minimal.defconfig`
+- [x] T008 Add QEMU as Git submodule at `./sources/qemu` from `https://gitlab.com/qemu-project/qemu.git`
+- [x] T009 Add U-Boot as Git submodule at `./sources/u-boot` from `https://source.denx.de/u-boot/u-boot.git`
+- [x] T010 Add OpenSBI as Git submodule at `./sources/opensbi` from `https://github.com/riscv-software-src/opensbi.git`
+- [x] T011 Add Linux kernel as Git submodule at `./sources/linux` from `https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git`
+- [x] T012 Add Buildroot as Git submodule at `./sources/buildroot` from `https://git.buildroot.net/buildroot`
+- [x] T013 Create environment setup script `scripts/env.sh` with ARCH, CROSS_COMPILE, paths
+- [x] T014 Create prerequisite check script `scripts/check_prereqs.sh` that verifies required apt packages
+- [x] T015 [P] Create config directory structure: `configs/qemu/`, `configs/u-boot/`, `configs/opensbi/`, `configs/linux/`, `configs/buildroot/`
+- [x] T016 [P] Create QEMU run config file `configs/qemu/run_qemu.conf`
+- [x] T017 [P] Create Linux kernel defconfig fragment `configs/linux/riscv64_virt.defconfig`
+- [x] T018 [P] Create Linux bootargs fragment `configs/linux/bootargs.fragment`
+- [x] T019 [P] Create Buildroot minimal defconfig `configs/buildroot/qemu_riscv64_minimal.defconfig`
 
 **Checkpoint**: All submodules initialized. Run `git submodule status` to verify.
 
@@ -58,23 +58,23 @@
 
 ### Build Scripts for US1
 
-- [ ] T020 [US1] Create QEMU build script `scripts/build_qemu.sh` with out-of-tree build to `./build/qemu/`
-- [ ] T021 [US1] Create OpenSBI build script `scripts/build_opensbi.sh` with PLATFORM=generic to `./build/opensbi/`
-- [ ] T022 [US1] Create U-Boot build script `scripts/build_uboot.sh` with qemu-riscv64_spl_defconfig, integrating OpenSBI fw_dynamic.bin to `./build/u-boot/`
-- [ ] T023 [US1] Create Linux kernel build script `scripts/build_linux.sh` with defconfig to `./build/linux/`
-- [ ] T024 [US1] Create Buildroot build script `scripts/build_buildroot.sh` for rootfs-only (no kernel) to `./build/rootfs/`
-- [ ] T025 [US1] Create build orchestration script `scripts/build_all.sh` calling all component scripts in order
-- [ ] T026 [US1] Create QEMU launch script `scripts/run_qemu.sh` with correct -bios and -device loader arguments
-- [ ] T027 [US1] Create clean script `scripts/clean.sh` with clean and distclean options
+- [x] T020 [US1] Create QEMU build script `scripts/build_qemu.sh` with out-of-tree build to `./build/qemu/`
+- [x] T021 [US1] Create OpenSBI build script `scripts/build_opensbi.sh` with PLATFORM=generic to `./build/opensbi/`
+- [x] T022 [US1] Create U-Boot build script `scripts/build_uboot.sh` with qemu-riscv64_spl_defconfig, integrating OpenSBI fw_dynamic.bin to `./build/u-boot/`
+- [x] T023 [US1] Create Linux kernel build script `scripts/build_linux.sh` with defconfig to `./build/linux/`
+- [x] T024 [US1] Create Buildroot build script `scripts/build_buildroot.sh` for rootfs-only (no kernel) to `./build/rootfs/`
+- [x] T025 [US1] Create build orchestration script `scripts/build_all.sh` calling all component scripts in order
+- [x] T026 [US1] Create QEMU launch script `scripts/run_qemu.sh` with correct -bios and -device loader arguments
+- [x] T027 [US1] Create clean script `scripts/clean.sh` with clean and distclean options
 
 ### Integration & Verification for US1
 
-- [ ] T028 [US1] Build all components using `scripts/build_all.sh`
-- [ ] T029 [US1] Verify boot reaches U-Boot SPL (log shows "U-Boot SPL")
-- [ ] T030 [US1] Verify OpenSBI initializes (log shows "OpenSBI v")
-- [ ] T031 [US1] Verify U-Boot proper runs (log shows "U-Boot 20")
-- [ ] T032 [US1] Verify Linux kernel boots (log shows "Linux version")
-- [ ] T033 [US1] Verify Buildroot login prompt appears (log shows "buildroot login:")
+- [x] T028 [US1] Build all components using `scripts/build_all.sh`
+- [x] T029 [US1] Verify boot reaches U-Boot SPL (log shows "U-Boot SPL")
+- [x] T030 [US1] Verify OpenSBI initializes (log shows "OpenSBI v")
+- [x] T031 [US1] Verify U-Boot proper runs (log shows "U-Boot 20")
+- [x] T032 [US1] Verify Linux kernel boots (log shows "Linux version")
+- [x] T033 [US1] Verify Buildroot login prompt appears (log shows "buildroot login:")
 
 **Checkpoint**: Full boot flow working. User can clone, build, and boot to login prompt.
 

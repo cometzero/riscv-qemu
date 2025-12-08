@@ -1,5 +1,6 @@
 #!/bin/bash
 # Run QEMU with RISC-V virt machine and full boot chain
+# Boot flow: OpenSBI → Linux Kernel → Buildroot rootfs
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -9,33 +10,32 @@ source "${SCRIPT_DIR}/env.sh"
 QEMU_BIN="${QEMU_SRC}/build/qemu-system-riscv64"
 
 # Boot images
-SPL_BIN="${UBOOT_BUILD}/spl/u-boot-spl.bin"
-FIT_BIN="${UBOOT_BUILD}/u-boot.itb"
+OPENSBI="${OPENSBI_BUILD}/platform/generic/firmware/fw_jump.bin"
+KERNEL="${LINUX_BUILD}/arch/riscv/boot/Image"
+INITRD="${ROOTFS_BUILD}/images/rootfs.cpio.gz"
 
 # Configuration
 MACHINE="virt"
 MEMORY="256M"
-FIT_ADDR="0x80200000"
+SMP="1"
 
 echo "=== RISC-V QEMU Boot ==="
-echo "QEMU: ${QEMU_BIN}"
-echo "SPL:  ${SPL_BIN}"
-echo "FIT:  ${FIT_BIN}"
+echo "QEMU:    ${QEMU_BIN}"
+echo "OpenSBI: ${OPENSBI}"
+echo "Kernel:  ${KERNEL}"
+echo "Initrd:  ${INITRD}"
 echo ""
 
 # Check files exist
-if [ ! -f "${QEMU_BIN}" ]; then
-    echo "ERROR: QEMU binary not found. Run ./scripts/build_qemu.sh first."
-    exit 1
-fi
+missing=""
+[ ! -f "${QEMU_BIN}" ] && missing="${missing} QEMU"
+[ ! -f "${OPENSBI}" ] && missing="${missing} OpenSBI"
+[ ! -f "${KERNEL}" ] && missing="${missing} Kernel"
+[ ! -f "${INITRD}" ] && missing="${missing} Initrd"
 
-if [ ! -f "${SPL_BIN}" ]; then
-    echo "ERROR: U-Boot SPL not found. Run ./scripts/build_uboot.sh first."
-    exit 1
-fi
-
-if [ ! -f "${FIT_BIN}" ]; then
-    echo "ERROR: U-Boot FIT image not found. Run ./scripts/build_uboot.sh first."
+if [ -n "${missing}" ]; then
+    echo "ERROR: Missing components:${missing}"
+    echo "Run ./scripts/build_all.sh first."
     exit 1
 fi
 
@@ -46,6 +46,9 @@ echo ""
 exec "${QEMU_BIN}" \
     -M ${MACHINE} \
     -m ${MEMORY} \
+    -smp ${SMP} \
     -nographic \
-    -bios "${SPL_BIN}" \
-    -device loader,file="${FIT_BIN}",addr=${FIT_ADDR}
+    -bios "${OPENSBI}" \
+    -kernel "${KERNEL}" \
+    -initrd "${INITRD}" \
+    -append "console=ttyS0 earlycon=sbi"
