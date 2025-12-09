@@ -13,3 +13,6 @@
 [submodule "sources/buildroot"]
 	path = sources/buildroot
 	url = https://git.buildroot.net/buildroot
+[submodule "sources/optee_os"]
+	path = sources/optee_os
+	url = https://github.com/OP-TEE/optee_os.git

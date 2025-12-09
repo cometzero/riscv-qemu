@@ -1,0 +1,400 @@
+From 806ec72fa146a179c7bbf5269c066c10d4aa80eb Mon Sep 17 00:00:00 2001
+From: Alvin Chang <alvinga@andestech.com>
+Date: Sun, 23 Feb 2025 23:50:01 +0800
+Subject: [OPTEE 18/20] lib: utils: Add MPXY RPMI Request Forward driver
+
+Implement MPXY RPMI Request Forward driver which stores RPMI message
+forwarded by other RPMI clients, e.g., untrusted domain.
+
+Co-developed-by: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Signed-off-by: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Signed-off-by: Alvin Chang <alvinga@andestech.com>
+---
+ include/sbi_utils/mailbox/rpmi_msgprot.h    |  39 +++
+ include/sbi_utils/mpxy/fdt_mpxy_rpmi_mbox.h |   7 +
+ lib/utils/mpxy/Kconfig                      |   4 +
+ lib/utils/mpxy/fdt_mpxy_reqfwd.c            | 264 ++++++++++++++++++++
+ lib/utils/mpxy/objects.mk                   |   3 +
+ platform/generic/configs/defconfig          |   1 +
+ 6 files changed, 318 insertions(+)
+ create mode 100644 lib/utils/mpxy/fdt_mpxy_reqfwd.c
+
+diff --git a/include/sbi_utils/mailbox/rpmi_msgprot.h b/include/sbi_utils/mailbox/rpmi_msgprot.h
+index e0d738826d30..f29a12328cae 100644
+--- a/include/sbi_utils/mailbox/rpmi_msgprot.h
++++ b/include/sbi_utils/mailbox/rpmi_msgprot.h
+@@ -215,6 +215,7 @@ enum rpmi_servicegroup_id {
+ 	RPMI_SRVGRP_HSM = 0x0005,
+ 	RPMI_SRVGRP_CPPC = 0x0006,
+ 	RPMI_SRVGRP_CLOCK = 0x0008,
++	RPMI_SRVGRP_REQFWD = 0x000D,
+ 	RPMI_SRVGRP_ID_MAX_COUNT,
+ 
+ 	/* Reserved range for service groups */
+@@ -701,4 +702,42 @@ struct rpmi_clock_get_rate_resp {
+ 	u32 clock_rate_high;
+ };
+ 
++/** RPMI Request Forward ServiceGroup Service IDs */
++enum rpmi_reqfwd_service_id {
++	RPMI_REQFWD_SRV_ENABLE_NOTIFICATION = 0x01,
++	RPMI_REQFWD_SRV_RETRIEVE_CURRENT_MESSAGE = 0x02,
++	RPMI_REQFWD_SRV_COMPLETE_CURRENT_MESSAGE = 0x03,
++	RPMI_REQFWD_SRV_MAX_COUNT,
++};
++
++struct rpmi_reqfwd_enable_notification_req {
++	u32 event_id;
++	u32 req_state;
++};
++
++struct rpmi_reqfwd_enable_notification_resp {
++	s32 status;
++	u32 current_state;
++};
++
++struct rpmi_reqfwd_retrieve_current_message_req {
++	u32 start_index;
++};
++
++struct rpmi_reqfwd_retrieve_current_message_resp {
++	s32 status;
++	u32 remaining;
++	u32 returned;
++	/* remaining space need to be adjusted for the above 3 u32's */
++	u8 request_message[RPMI_MSG_DATA_SIZE(RPMI_SLOT_SIZE_MIN) - (sizeof(u32) * 3)];
++};
++
++struct rpmi_reqfwd_complete_current_message_req {
++	u8 response_data[RPMI_MSG_DATA_SIZE(RPMI_SLOT_SIZE_MIN)];
++};
++
++struct rpmi_reqfwd_complete_current_message_resp {
++	s32 status;
++};
++
+ #endif /* !__RPMI_MSGPROT_H__ */
+diff --git a/include/sbi_utils/mpxy/fdt_mpxy_rpmi_mbox.h b/include/sbi_utils/mpxy/fdt_mpxy_rpmi_mbox.h
+index 068a1a557fe2..9ee2c0243a69 100644
+--- a/include/sbi_utils/mpxy/fdt_mpxy_rpmi_mbox.h
++++ b/include/sbi_utils/mpxy/fdt_mpxy_rpmi_mbox.h
+@@ -76,4 +76,11 @@ struct mpxy_rpmi_mbox_data {
+ /** Common probe function for MPXY RPMI drivers */
+ int mpxy_rpmi_mbox_init(const void *fdt, int nodeoff, const struct fdt_match *match);
+ 
++/** Forward message by MPXY RPMI Request Forward service group */
++int mpxy_reqfwd_forward_message(struct sbi_mpxy_channel *channel,
++				struct rpmi_message_header *header,
++				void *tx, u32 tx_len,
++				void *rx, u32 rx_max_len,
++				unsigned long *ack_len);
++
+ #endif
+diff --git a/lib/utils/mpxy/Kconfig b/lib/utils/mpxy/Kconfig
+index 8d1f51838d34..51acbfde33b4 100644
+--- a/lib/utils/mpxy/Kconfig
++++ b/lib/utils/mpxy/Kconfig
+@@ -12,6 +12,10 @@ config FDT_MPXY_RPMI_MBOX
+ 	depends on FDT_MAILBOX && FDT_MPXY
+ 	default n
+ 
++config FDT_MPXY_REQFWD
++	bool "MPXY driver for RPMI Request Forward service group"
++	default n
++
+ if FDT_MPXY_RPMI_MBOX
+ 
+ config FDT_MPXY_RPMI_CLOCK
+diff --git a/lib/utils/mpxy/fdt_mpxy_reqfwd.c b/lib/utils/mpxy/fdt_mpxy_reqfwd.c
+new file mode 100644
+index 000000000000..11de1474a9cd
+--- /dev/null
++++ b/lib/utils/mpxy/fdt_mpxy_reqfwd.c
+@@ -0,0 +1,264 @@
++/*
++ * SPDX-License-Identifier: BSD-2-Clause
++ *
++ * Copyright (c) 2025 Andes Technology Corporation. All rights reserved.
++ */
++
++#include <libfdt.h>
++#include <sbi/sbi_console.h>
++#include <sbi/sbi_domain.h>
++#include <sbi/sbi_error.h>
++#include <sbi/sbi_fifo.h>
++#include <sbi/sbi_hart.h>
++#include <sbi/sbi_heap.h>
++#include <sbi/sbi_mpxy.h>
++#include <sbi/sbi_scratch.h>
++#include <sbi/sbi_string.h>
++#include <sbi_utils/mpxy/fdt_mpxy_rpmi_mbox.h>
++#include <sbi_utils/fdt/fdt_helper.h>
++
++/** RPMI Message */
++struct rpmi_message_slot {
++	struct rpmi_message_header header;
++	u8 data[RPMI_MSG_DATA_SIZE(RPMI_SLOT_SIZE_MIN)];
++
++	/* Sender RX address. Should be MPXY shared memory */
++	void *sender_rx;
++};
++
++#define REQFWD_MSG_FIFO_ENTRIES		4
++
++/**
++ * MPXY ReqFwd instance per MPXY channel.
++ */
++struct mpxy_reqfwd {
++	struct mpxy_rpmi_channel_attrs msgprot_attrs;
++	struct sbi_mpxy_channel channel;
++	/* Owner Hart ID of this channel */
++	u32 hartid;
++	/* FIFO to store forwarded RPMI request message */
++	struct sbi_fifo msg_fifo;
++	/* Current forwarded RPMI request message */
++	struct rpmi_message_slot current_msg;
++
++	/* Receiver side is waiting for message */
++	bool is_waiting_message;
++	/* Receiver RX address. Should be MPXY shared memory */
++	void *rx;
++	/* Maximum receiver RX length */
++	u32 rx_max_len;
++	/* Length of responce of current message */
++	unsigned long ack_len;
++};
++
++static int retrieve_message(struct mpxy_reqfwd *reqfwd,
++			    void *rx, u32 rx_max_len, unsigned long *ack_len)
++{
++	struct rpmi_message_slot *current_msg = &reqfwd->current_msg;
++	u32 datalen;
++	int rc;
++
++	/* Dequeue oldest forwarded RPMI request message */
++	rc = sbi_fifo_dequeue(&reqfwd->msg_fifo, current_msg);
++	if (!rc) {
++		/* Get data length from RPMI message header */
++		datalen = le16_to_cpu(current_msg->header.datalen);
++		if (rx_max_len < datalen)
++			return SBI_ENOMEM;
++
++		/* STATUS */
++		((u32 *)rx)[0] = cpu_to_le32(RPMI_SUCCESS);
++		/* REMAINING */
++		((u32 *)rx)[1] = cpu_to_le32(0);
++		/* RETURNED */
++		((u32 *)rx)[2] = cpu_to_le32(datalen);
++		/* REQUEST_MESSAGE[N] */
++		sbi_memcpy(&((u32 *)rx)[3], current_msg->data, datalen);
++		*ack_len = 3 * sizeof(u32) + datalen;
++
++		reqfwd->is_waiting_message = false;
++	}
++
++	return rc;
++}
++
++int mpxy_reqfwd_forward_message(struct sbi_mpxy_channel *channel,
++				struct rpmi_message_header *header,
++				void *tx, u32 tx_len,
++				void *rx, u32 rx_max_len,
++				unsigned long *ack_len)
++{
++	struct mpxy_reqfwd *reqfwd;
++	struct rpmi_message_slot msg;
++	int rc;
++
++	if (!tx || tx_len > RPMI_MSG_DATA_SIZE(RPMI_SLOT_SIZE_MIN))
++		return SBI_EINVAL;
++
++	reqfwd = container_of(channel, struct mpxy_reqfwd, channel);
++
++	/* Prepare and enqueue message into per-channel FIFO */
++	sbi_memset(&msg, 0, sizeof(struct rpmi_message_slot));
++	sbi_memcpy(&msg.header, header, RPMI_MSG_HDR_SIZE);
++	sbi_memcpy(msg.data, tx, tx_len);
++	/* Record RX information so that we can copy response into it later */
++	msg.sender_rx = rx;
++	sbi_fifo_enqueue(&reqfwd->msg_fifo, &msg, true);
++
++	if (reqfwd->is_waiting_message) {
++		/*
++		 * The callee domain is waiting for message.
++		 * We immediately retrieve message and switch into it.
++		 */
++		rc = retrieve_message(reqfwd, reqfwd->rx, reqfwd->rx_max_len,
++				      ack_len);
++		if (rc)
++			return rc;
++	}
++
++	return SBI_OK;
++}
++
++/** Copy attributes word size */
++static void mpxy_copy_attrs(u32 *outmem, u32 *inmem, u32 count)
++{
++	u32 idx;
++	for (idx = 0; idx < count; idx++)
++		outmem[idx] = cpu_to_le32(inmem[idx]);
++}
++
++static int mpxy_reqfwd_read_attributes(struct sbi_mpxy_channel *channel,
++				       u32 *outmem, u32 base_attr_id,
++				       u32 attr_count)
++{
++	struct mpxy_reqfwd *reqfwd =
++		container_of(channel, struct mpxy_reqfwd, channel);
++	u32 *attr_array = (u32 *)&reqfwd->msgprot_attrs;
++	u32 end_id = base_attr_id + attr_count - 1;
++
++	if (end_id >= MPXY_MSGPROT_RPMI_ATTR_MAX_ID)
++		return SBI_EBAD_RANGE;
++
++	mpxy_copy_attrs(outmem, &attr_array[attr_id2index(base_attr_id)],
++			attr_count);
++
++	return SBI_OK;
++}
++
++static int mpxy_reqfwd_send_message_withresp(struct sbi_mpxy_channel *channel,
++					     u32 message_id,
++					     void *tx, u32 tx_len,
++					     void *rx, u32 rx_max_len,
++					     unsigned long *ack_len)
++{
++	struct mpxy_reqfwd *reqfwd =
++		container_of(channel, struct mpxy_reqfwd, channel);
++	struct rpmi_message_slot *current_msg = &reqfwd->current_msg;
++	int rc;
++
++	if (RPMI_REQFWD_SRV_RETRIEVE_CURRENT_MESSAGE == message_id) {
++		/* Dequeue oldest forwarded RPMI request message */
++		rc = retrieve_message(reqfwd, rx, rx_max_len, ack_len);
++		if (rc == SBI_OK || rc == SBI_EINVAL)
++			return rc;
++
++		/* No more message. Switch back to caller domain */
++		*ack_len = reqfwd->ack_len;
++		reqfwd->ack_len = 0;
++
++		/* Record this domain is waiting for message */
++		reqfwd->is_waiting_message = true;
++		reqfwd->rx = rx;
++		reqfwd->rx_max_len = rx_max_len;
++
++		/* Switch to other domain */
++		sbi_domain_context_exit();
++	} else if (RPMI_REQFWD_SRV_COMPLETE_CURRENT_MESSAGE == message_id) {
++		if (current_msg->header.servicegroup_id) {
++			/* Fill response data into RX of sender */
++			/* tx has a0~a4. Just skip a0 and copy a1~a4 here */
++			sbi_memcpy(current_msg->sender_rx, &(((ulong *)tx)[1]),
++				   tx_len - sizeof(ulong));
++			reqfwd->ack_len = tx_len - sizeof(ulong);
++			/* Clear cerrent message */
++			memset(&current_msg, 0, sizeof(current_msg));
++			/* STATUS */
++			((u32 *)rx)[0] = cpu_to_le32(RPMI_SUCCESS);
++		} else {
++			/* STATUS */
++			((u32 *)rx)[0] = cpu_to_le32(RPMI_ERR_NO_DATA);
++		}
++		*ack_len = sizeof(u32);
++	} else {
++		return SBI_EFAIL;
++	}
++
++	return SBI_OK;
++}
++
++static int mpxy_reqfwd_init(const void *fdt, int nodeoff,
++			    const struct fdt_match *match)
++{
++	struct rpmi_message_slot *msg_buf;
++	struct mpxy_reqfwd *reqfwd;
++	const fdt32_t *val;
++	u32 channel_id, hartid;
++	int rc, len;
++
++	/* Allocate context for Request Forward */
++	reqfwd = sbi_zalloc(sizeof(*reqfwd));
++	if (!reqfwd)
++		return SBI_ENOMEM;
++
++	val = fdt_getprop(fdt, nodeoff, "riscv,sbi-mpxy-channel-id", &len);
++	if (len > 0 && val)
++		channel_id = fdt32_to_cpu(*val);
++	else
++		sbi_panic("Failed to get riscv,sbi-mpxy-channel-id");
++
++	val = fdt_getprop(fdt, nodeoff, "test,owner-hart", &len);
++	if (len > 0 && val)
++		hartid = fdt32_to_cpu(*val);
++	else
++		sbi_panic("Failed to get test,owner-hart");
++
++	reqfwd->channel.channel_id = channel_id;
++	reqfwd->hartid = hartid;
++	reqfwd->channel.read_attributes = mpxy_reqfwd_read_attributes;
++	reqfwd->channel.send_message_with_response =
++		mpxy_reqfwd_send_message_withresp;
++	reqfwd->channel.attrs.msg_data_maxlen = PAGE_SIZE;
++
++	/* RPMI service group attributes */
++	reqfwd->msgprot_attrs.servicegrp_id = RPMI_SRVGRP_REQFWD;
++	reqfwd->msgprot_attrs.servicegrp_ver = 1;
++
++	/* Allocate per-channel FIFO */
++	msg_buf = sbi_calloc(REQFWD_MSG_FIFO_ENTRIES, sizeof(*msg_buf));
++	if (!msg_buf) {
++		sbi_free(reqfwd);
++		return SBI_ENOMEM;
++	}
++
++	sbi_fifo_init(&reqfwd->msg_fifo, msg_buf, REQFWD_MSG_FIFO_ENTRIES,
++		      sizeof(struct rpmi_message_slot));
++
++	rc = sbi_mpxy_register_channel(&reqfwd->channel);
++	if (rc) {
++		sbi_free(reqfwd);
++		return rc;
++	}
++
++	return SBI_OK;
++}
++
++static const struct fdt_match mpxy_reqfwd_match[] = {
++	{ .compatible = "riscv,sbi-mpxy-reqfwd", .data = NULL },
++	{},
++};
++
++const struct fdt_driver fdt_mpxy_reqfwd = {
++	.match_table = mpxy_reqfwd_match,
++	.init = mpxy_reqfwd_init,
++	.experimental = true,
++};
+diff --git a/lib/utils/mpxy/objects.mk b/lib/utils/mpxy/objects.mk
+index 5b6e9bdfbdd0..36e013b14fb1 100644
+--- a/lib/utils/mpxy/objects.mk
++++ b/lib/utils/mpxy/objects.mk
+@@ -17,3 +17,6 @@ libsbiutils-objs-$(CONFIG_FDT_MPXY_RPMI_CLOCK) += mpxy/fdt_mpxy_rpmi_clock.o
+ 
+ carray-fdt_mpxy_drivers-$(CONFIG_FDT_MPXY_RPMI_SYSMSI) += fdt_mpxy_rpmi_sysmsi
+ libsbiutils-objs-$(CONFIG_FDT_MPXY_RPMI_SYSMSI) += mpxy/fdt_mpxy_rpmi_sysmsi.o
++
++carray-fdt_mpxy_drivers-$(CONFIG_FDT_MPXY_REQFWD) += fdt_mpxy_reqfwd
++libsbiutils-objs-$(CONFIG_FDT_MPXY_REQFWD) += mpxy/fdt_mpxy_reqfwd.o
+diff --git a/platform/generic/configs/defconfig b/platform/generic/configs/defconfig
+index bb260626981a..882bd4a2038d 100644
+--- a/platform/generic/configs/defconfig
++++ b/platform/generic/configs/defconfig
+@@ -57,3 +57,4 @@ CONFIG_FDT_MPXY=y
+ CONFIG_FDT_MPXY_RPMI_MBOX=y
+ CONFIG_FDT_MPXY_RPMI_CLOCK=y
+ CONFIG_FDT_MPXY_RPMI_SYSMSI=y
++CONFIG_FDT_MPXY_REQFWD=y
+-- 
+2.43.0
+

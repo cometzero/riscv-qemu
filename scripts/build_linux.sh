@@ -1,9 +1,30 @@
 #!/bin/bash
 # Build Linux kernel for RISC-V QEMU virt
+# Usage: build_linux.sh [--optee]
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/env.sh"
+
+# Parse arguments
+OPTEE_MODE=false
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --optee)
+            OPTEE_MODE=true
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [--optee]"
+            echo "  --optee  Build Linux with OP-TEE TEE driver support"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
 
 COMPONENT="linux"
 LOG_FILE="${LOG_DIR}/${COMPONENT}-$(date +%Y%m%d-%H%M%S).log"
@@ -11,6 +32,9 @@ LOG_FILE="${LOG_DIR}/${COMPONENT}-$(date +%Y%m%d-%H%M%S).log"
 echo "=== Building Linux Kernel ==="
 echo "Source: ${LINUX_SRC}"
 echo "Output: ${LINUX_BUILD}"
+if [ "${OPTEE_MODE}" = true ]; then
+    echo "Mode: OP-TEE TEE driver enabled"
+fi
 echo "Log: ${LOG_FILE}"
 
 mkdir -p "${LINUX_BUILD}" "${LOG_DIR}"
@@ -25,6 +49,24 @@ make \
     O="${LINUX_BUILD}" \
     defconfig \
     >> "${LOG_FILE}" 2>&1
+
+# Apply OP-TEE config fragment if requested
+if [ "${OPTEE_MODE}" = true ]; then
+    OPTEE_FRAGMENT="${CONFIGS_DIR}/linux/optee.fragment"
+    if [ -f "${OPTEE_FRAGMENT}" ]; then
+        echo "[Linux] Applying OP-TEE config fragment..."
+        # Merge the OP-TEE config options
+        cat "${OPTEE_FRAGMENT}" >> "${LINUX_BUILD}/.config"
+        make \
+            ARCH=${ARCH} \
+            CROSS_COMPILE=${CROSS_COMPILE} \
+            O="${LINUX_BUILD}" \
+            olddefconfig \
+            >> "${LOG_FILE}" 2>&1
+    else
+        echo "[Linux] WARNING: OP-TEE config fragment not found at ${OPTEE_FRAGMENT}"
+    fi
+fi
 
 # Build kernel Image
 echo "[Linux] Building with ${NPROC} jobs..."

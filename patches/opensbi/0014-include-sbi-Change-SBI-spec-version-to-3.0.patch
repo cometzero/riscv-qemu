@@ -1,0 +1,89 @@
+From d4f5a16598ae4469ee9355a13366292758901c17 Mon Sep 17 00:00:00 2001
+From: Anup Patel <apatel@ventanamicro.com>
+Date: Fri, 16 May 2025 17:58:44 +0530
+Subject: [OPTEE 14/20] include: sbi: Change SBI spec version to 3.0
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Now that SBI v3.0 specification is frozen, change runtime SBI version
+implemented by OpenSBI to v3.0. Also, mark extensions defined by the
+SBI v3.0 specification as non-experimental.
+
+Signed-off-by: Anup Patel <apatel@ventanamicro.com>
+Reviewed-by: Clément Léger <cleger@rivosinc.com>
+Reviewed-by: Atish Patra <atishp@rivosinc.com>
+Link: https://lore.kernel.org/r/20250516122844.113423-1-apatel@ventanamicro.com
+Signed-off-by: Anup Patel <anup@brainfault.org>
+---
+ include/sbi/sbi_ecall.h  | 2 +-
+ lib/sbi/sbi_ecall_dbtr.c | 1 -
+ lib/sbi/sbi_ecall_fwft.c | 1 -
+ lib/sbi/sbi_ecall_mpxy.c | 1 -
+ lib/sbi/sbi_ecall_sse.c  | 1 -
+ 5 files changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/include/sbi/sbi_ecall.h b/include/sbi/sbi_ecall.h
+index 88a69bb3083c..15400e5a6b86 100644
+--- a/include/sbi/sbi_ecall.h
++++ b/include/sbi/sbi_ecall.h
+@@ -13,7 +13,7 @@
+ #include <sbi/sbi_types.h>
+ #include <sbi/sbi_list.h>
+ 
+-#define SBI_ECALL_VERSION_MAJOR		2
++#define SBI_ECALL_VERSION_MAJOR		3
+ #define SBI_ECALL_VERSION_MINOR		0
+ #define SBI_OPENSBI_IMPID		1
+ 
+diff --git a/lib/sbi/sbi_ecall_dbtr.c b/lib/sbi/sbi_ecall_dbtr.c
+index d28fd39695a7..9c496c42edac 100644
+--- a/lib/sbi/sbi_ecall_dbtr.c
++++ b/lib/sbi/sbi_ecall_dbtr.c
+@@ -69,7 +69,6 @@ struct sbi_ecall_extension ecall_dbtr = {
+ 	.name			= "dbtr",
+ 	.extid_start		= SBI_EXT_DBTR,
+ 	.extid_end		= SBI_EXT_DBTR,
+-	.experimental		= true,
+ 	.handle			= sbi_ecall_dbtr_handler,
+ 	.register_extensions	= sbi_ecall_dbtr_register_extensions,
+ };
+diff --git a/lib/sbi/sbi_ecall_fwft.c b/lib/sbi/sbi_ecall_fwft.c
+index 3519285ef779..2277405eb68d 100644
+--- a/lib/sbi/sbi_ecall_fwft.c
++++ b/lib/sbi/sbi_ecall_fwft.c
+@@ -45,7 +45,6 @@ struct sbi_ecall_extension ecall_fwft = {
+ 	.name			= "fwft",
+ 	.extid_start		= SBI_EXT_FWFT,
+ 	.extid_end		= SBI_EXT_FWFT,
+-	.experimental		= true,
+ 	.register_extensions	= sbi_ecall_fwft_register_extensions,
+ 	.handle			= sbi_ecall_fwft_handler,
+ };
+diff --git a/lib/sbi/sbi_ecall_mpxy.c b/lib/sbi/sbi_ecall_mpxy.c
+index 03ac71b237d5..0a5e352598a0 100644
+--- a/lib/sbi/sbi_ecall_mpxy.c
++++ b/lib/sbi/sbi_ecall_mpxy.c
+@@ -67,7 +67,6 @@ struct sbi_ecall_extension ecall_mpxy = {
+ 	.name			= "mpxy",
+ 	.extid_start		= SBI_EXT_MPXY,
+ 	.extid_end		= SBI_EXT_MPXY,
+-	.experimental		= true,
+ 	.register_extensions	= sbi_ecall_mpxy_register_extensions,
+ 	.handle			= sbi_ecall_mpxy_handler,
+ };
+diff --git a/lib/sbi/sbi_ecall_sse.c b/lib/sbi/sbi_ecall_sse.c
+index 303c0f2d2382..b7dbf0723ede 100644
+--- a/lib/sbi/sbi_ecall_sse.c
++++ b/lib/sbi/sbi_ecall_sse.c
+@@ -59,7 +59,6 @@ struct sbi_ecall_extension ecall_sse = {
+ 	.name			= "sse",
+ 	.extid_start		= SBI_EXT_SSE,
+ 	.extid_end		= SBI_EXT_SSE,
+-	.experimental		= true,
+ 	.register_extensions	= sbi_ecall_sse_register_extensions,
+ 	.handle			= sbi_ecall_sse_handler,
+ };
+-- 
+2.43.0
+

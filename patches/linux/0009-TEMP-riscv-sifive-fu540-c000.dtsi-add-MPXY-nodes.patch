@@ -1,0 +1,65 @@
+From 6a00684a07273f73776241941c0283b86d95ca3f Mon Sep 17 00:00:00 2001
+From: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Date: Fri, 25 Apr 2025 19:52:14 -0700
+Subject: [RISE 09/10] [TEMP] riscv: sifive: fu540-c000.dtsi: add MPXY nodes
+
+for testing.
+
+Signed-off-by: Yu-Chien Peter Lin <peter.lin@sifive.com>
+---
+ arch/riscv/boot/dts/sifive/fu540-c000.dtsi | 42 ++++++++++++++++++++++
+ 1 file changed, 42 insertions(+)
+
+diff --git a/arch/riscv/boot/dts/sifive/fu540-c000.dtsi b/arch/riscv/boot/dts/sifive/fu540-c000.dtsi
+index 156330a9bbf3..06876a20675e 100644
+--- a/arch/riscv/boot/dts/sifive/fu540-c000.dtsi
++++ b/arch/riscv/boot/dts/sifive/fu540-c000.dtsi
+@@ -326,3 +326,45 @@ gpio: gpio@10060000 {
+ 		};
+ 	};
+ };
++
++/ {
++	mpxy_mbox: sbi-mpxy-mbox {
++		compatible = "riscv,sbi-mpxy-mbox";
++		#mbox-cells = <2>;
++	};
++
++	rpmi_mm_0 {
++		riscv,sbi-mpxy-channel-id = <0x0>;
++		test,owner-hart = <0x1>;
++		compatible = "riscv,sbi-mpxy-mm";
++	};
++
++	rpmi_mm_1 {
++		riscv,sbi-mpxy-channel-id = <0x1>;
++		test,owner-hart = <0x2>;
++		compatible = "riscv,sbi-mpxy-mm";
++	};
++
++	rpmi_mm_2 {
++		riscv,sbi-mpxy-channel-id = <0x2>;
++		test,owner-hart = <0x3>;
++		compatible = "riscv,sbi-mpxy-mm";
++	};
++
++	rpmi_mm_3 {
++		riscv,sbi-mpxy-channel-id = <0x3>;
++		test,owner-hart = <0x4>;
++		compatible = "riscv,sbi-mpxy-mm";
++	};
++
++	firmware {
++		optee {
++			compatible = "linaro,optee-tz";
++			method = "smc";
++			mboxes = <&mpxy_mbox 0x00 0x00>,
++				 <&mpxy_mbox 0x01 0x00>,
++				 <&mpxy_mbox 0x02 0x00>,
++				 <&mpxy_mbox 0x03 0x00>;
++		};
++	};
++};
+-- 
+2.43.0
+

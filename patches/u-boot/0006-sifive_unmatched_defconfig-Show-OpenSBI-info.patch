@@ -1,0 +1,24 @@
+From 1fd77097f0cf3569b0c98dc78c69b039f6f6be4d Mon Sep 17 00:00:00 2001
+From: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Date: Sun, 12 Jan 2025 04:13:55 -0800
+Subject: [RISE 06/10] sifive_unmatched_defconfig: Show OpenSBI info
+
+---
+ configs/sifive_unmatched_defconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/configs/sifive_unmatched_defconfig b/configs/sifive_unmatched_defconfig
+index 621e8551fe6b..66f47bd1c098 100644
+--- a/configs/sifive_unmatched_defconfig
++++ b/configs/sifive_unmatched_defconfig
+@@ -52,6 +52,7 @@ CONFIG_CMD_POWEROFF=y
+ CONFIG_CMD_USB=y
+ CONFIG_ENV_SPI_BUS=1
+ CONFIG_SPL_OPTEE_LOAD_ADDR=0xf1000000
++CONFIG_SPL_OPENSBI_SCRATCH_OPTIONS=0x0
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_SCSI_AHCI=y
+ CONFIG_AHCI_PCI=y
+-- 
+2.43.0
+

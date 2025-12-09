@@ -1,0 +1,72 @@
+From 8fadfebdd1c2fb8680d4a9c482d577e9f0e28572 Mon Sep 17 00:00:00 2001
+From: Anup Patel <apatel@ventanamicro.com>
+Date: Mon, 12 May 2025 14:08:26 +0530
+Subject: [OPTEE 09/20] lib: utils/mailbox: Parse A2P doorbell value from DT
+
+The A2P doorbell value written to the 32-bit A2P doorbell value
+must be discoverd from device tree instead of always using the
+default value 1.
+
+Signed-off-by: Anup Patel <apatel@ventanamicro.com>
+Link: https://lore.kernel.org/r/20250512083827.804151-4-apatel@ventanamicro.com
+Signed-off-by: Anup Patel <anup@brainfault.org>
+---
+ lib/utils/mailbox/fdt_mailbox_rpmi_shmem.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/lib/utils/mailbox/fdt_mailbox_rpmi_shmem.c b/lib/utils/mailbox/fdt_mailbox_rpmi_shmem.c
+index 164ae14d4370..aad68b5a996b 100644
+--- a/lib/utils/mailbox/fdt_mailbox_rpmi_shmem.c
++++ b/lib/utils/mailbox/fdt_mailbox_rpmi_shmem.c
+@@ -134,6 +134,7 @@ struct rpmi_shmem_mbox_controller {
+ 	u32 slot_size;
+ 	u32 queue_count;
+ 	u32 p2a_doorbell_sysmsi_index;
++	u32 a2p_doorbell_value;
+ 	struct rpmi_mb_regs *mb_regs;
+ 	struct smq_queue_ctx queue_ctx_tbl[RPMI_QUEUE_IDX_MAX_COUNT];
+ 	/* Mailbox framework related members */
+@@ -248,7 +249,8 @@ static int __smq_rx(struct smq_queue_ctx *qctx, u32 slot_size,
+ }
+ 
+ static int __smq_tx(struct smq_queue_ctx *qctx, struct rpmi_mb_regs *mb_regs,
+-		    u32 slot_size, u32 service_group_id, struct mbox_xfer *xfer)
++		    u32 a2p_doorbell_value, u32 slot_size, u32 service_group_id,
++		    struct mbox_xfer *xfer)
+ {
+ 	u32 i, tailidx;
+ 	void *dst, *src;
+@@ -300,7 +302,7 @@ static int __smq_tx(struct smq_queue_ctx *qctx, struct rpmi_mb_regs *mb_regs,
+ 
+ 	/* Ring the RPMI doorbell if present */
+ 	if (mb_regs)
+-		writel(cpu_to_le32(1), &mb_regs->db_reg);
++		writel(a2p_doorbell_value, &mb_regs->db_reg);
+ 
+ 	return SBI_OK;
+ }
+@@ -364,8 +366,8 @@ static int smq_tx(struct rpmi_shmem_mbox_controller *mctl,
+ 	 */
+ 	do {
+ 		spin_lock(&qctx->queue_lock);
+-		ret = __smq_tx(qctx, mctl->mb_regs, mctl->slot_size,
+-				service_group_id, xfer);
++		ret = __smq_tx(qctx, mctl->mb_regs, mctl->a2p_doorbell_value,
++				mctl->slot_size, service_group_id, xfer);
+ 		spin_unlock(&qctx->queue_lock);
+ 		if (!ret)
+ 			return 0;
+@@ -604,6 +606,10 @@ static int rpmi_shmem_transport_init(struct rpmi_shmem_mbox_controller *mctl,
+ 	prop = fdt_getprop(fdt, nodeoff, "riscv,p2a-doorbell-sysmsi-index", &len);
+ 	mctl->p2a_doorbell_sysmsi_index = prop ? fdt32_to_cpu(*prop) : -1U;
+ 
++	/* get a2p doorbell value */
++	prop = fdt_getprop(fdt, nodeoff, "riscv,a2p-doorbell-value", &len);
++	mctl->a2p_doorbell_value = prop ? fdt32_to_cpu(*prop) : 1;
++
+ 	/*
+ 	 * queue names count is taken as the number of queues
+ 	 * supported which make it mandatory to provide the
+-- 
+2.43.0
+

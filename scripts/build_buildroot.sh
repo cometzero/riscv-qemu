@@ -1,9 +1,30 @@
 #!/bin/bash
 # Build minimal Buildroot rootfs for RISC-V QEMU using external toolchain
+# Usage: build_buildroot.sh [--optee]
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/env.sh"
+
+# Parse arguments
+OPTEE_MODE=false
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --optee)
+            OPTEE_MODE=true
+            shift
+            ;;
+        --help|-h)
+            echo "Usage: $0 [--optee]"
+            echo "  --optee  Build rootfs with OP-TEE packages (xtest, optee-client)"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
 
 COMPONENT="buildroot"
 LOG_FILE="${LOG_DIR}/${COMPONENT}-$(date +%Y%m%d-%H%M%S).log"
@@ -11,13 +32,16 @@ LOG_FILE="${LOG_DIR}/${COMPONENT}-$(date +%Y%m%d-%H%M%S).log"
 echo "=== Building Buildroot Rootfs ==="
 echo "Source: ${BUILDROOT_SRC}"
 echo "Output: ${ROOTFS_BUILD}"
+if [ "${OPTEE_MODE}" = true ]; then
+    echo "Mode: OP-TEE packages enabled (xtest, optee-client)"
+fi
 echo "Log: ${LOG_FILE}"
 
 mkdir -p "${ROOTFS_BUILD}" "${LOG_DIR}"
 
 cd "${BUILDROOT_SRC}"
 
-# Create minimal config with external toolchain
+# Create base config
 cat > "${ROOTFS_BUILD}/.config" << 'EOF'
 # Target architecture
 BR2_riscv=y
@@ -47,6 +71,23 @@ BR2_TARGET_ROOTFS_CPIO_GZIP=y
 # No kernel (built separately)
 BR2_LINUX_KERNEL=n
 EOF
+
+# Add OP-TEE packages if requested
+if [ "${OPTEE_MODE}" = true ]; then
+    echo "[Buildroot] Adding OP-TEE packages..."
+    cat >> "${ROOTFS_BUILD}/.config" << 'EOF'
+
+# OP-TEE packages
+# Note: These packages require OP-TEE support in Buildroot
+# For now, add placeholder - actual packages need RISE Buildroot branch
+# BR2_PACKAGE_OPTEE_CLIENT=y
+# BR2_PACKAGE_OPTEE_TEST=y
+# BR2_PACKAGE_OPTEE_EXAMPLES=y
+
+# Additional debugging tools for TEE
+BR2_PACKAGE_STRACE=y
+EOF
+fi
 
 echo "[Buildroot] Using minimal external toolchain config..."
 make O="${ROOTFS_BUILD}" olddefconfig >> "${LOG_FILE}" 2>&1

@@ -1,0 +1,33 @@
+From 4a7cfc7d5ed9bebeba1a0c1680af0988355eccbd Mon Sep 17 00:00:00 2001
+From: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Date: Sun, 12 Jan 2025 04:12:37 -0800
+Subject: [RISE 05/10] sifive_unmatched_defconfig: Enable OP-TEE related
+ configs
+
+---
+ configs/sifive_unmatched_defconfig | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/configs/sifive_unmatched_defconfig b/configs/sifive_unmatched_defconfig
+index 4fed7eda9484..621e8551fe6b 100644
+--- a/configs/sifive_unmatched_defconfig
++++ b/configs/sifive_unmatched_defconfig
+@@ -51,6 +51,7 @@ CONFIG_CMD_PCI=y
+ CONFIG_CMD_POWEROFF=y
+ CONFIG_CMD_USB=y
+ CONFIG_ENV_SPI_BUS=1
++CONFIG_SPL_OPTEE_LOAD_ADDR=0xf1000000
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_SCSI_AHCI=y
+ CONFIG_AHCI_PCI=y
+@@ -65,3 +66,7 @@ CONFIG_SCSI=y
+ CONFIG_USB=y
+ CONFIG_USB_XHCI_HCD=y
+ CONFIG_USB_XHCI_PCI=y
++CONFIG_TEE=y
++CONFIG_OPTEE=y
++# CONFIG_CHIMP_OPTEE is not set
++# CONFIG_OPTEE_LIB is not set
+-- 
+2.43.0
+

@@ -1,0 +1,40 @@
+From 233704ccf78adc947b88d68a14bb3fbf53031ccc Mon Sep 17 00:00:00 2001
+From: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Date: Sat, 26 Apr 2025 01:51:56 -0700
+Subject: [RISE 09/10] driver: optee: Kconfig: allow using SBI for TEE
+ communication
+
+---
+ drivers/tee/Kconfig       | 2 +-
+ drivers/tee/optee/Kconfig | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/tee/Kconfig b/drivers/tee/Kconfig
+index 5ca5a0836c59..81127c3164f1 100644
+--- a/drivers/tee/Kconfig
++++ b/drivers/tee/Kconfig
+@@ -1,7 +1,7 @@
+ # Generic Trusted Execution Environment Configuration
+ config TEE
+ 	bool "Trusted Execution Environment support"
+-	depends on (ARM && (ARM64 || CPU_V7A)) || SANDBOX
++	depends on (ARM && (ARM64 || CPU_V7A)) || SANDBOX || RISCV
+ 	select ARM_SMCCC if ARM
+ 	help
+ 	  This implements a generic interface towards a Trusted Execution
+diff --git a/drivers/tee/optee/Kconfig b/drivers/tee/optee/Kconfig
+index db0bcfa6f153..f1b4929da185 100644
+--- a/drivers/tee/optee/Kconfig
++++ b/drivers/tee/optee/Kconfig
+@@ -1,7 +1,7 @@
+ # OP-TEE Trusted Execution Environment Configuration
+ config OPTEE
+ 	bool "OP-TEE"
+-	depends on ARM_SMCCC
++	depends on ARM_SMCCC || SBI
+ 	help
+ 	  This implements the OP-TEE Trusted Execution Environment (TEE)
+ 	  driver. OP-TEE is a Trusted OS designed primarily to rely on the
+-- 
+2.43.0
+

@@ -1,0 +1,24 @@
+From 0ed371ddff06367df57563a0c5bd9f553a77ecdd Mon Sep 17 00:00:00 2001
+From: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Date: Fri, 3 Jan 2025 23:08:44 -0800
+Subject: [RISE 02/10] sifive_unleashed_defconfig: Show OpenSBI info
+
+---
+ configs/sifive_unleashed_defconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/configs/sifive_unleashed_defconfig b/configs/sifive_unleashed_defconfig
+index 12a17d6d4513..226e756c3dc7 100644
+--- a/configs/sifive_unleashed_defconfig
++++ b/configs/sifive_unleashed_defconfig
+@@ -37,6 +37,7 @@ CONFIG_SPL_DM_SPI_FLASH=y
+ CONFIG_SPL_DM_RESET=y
+ CONFIG_SPL_SPI_LOAD=y
+ CONFIG_SPL_OPTEE_LOAD_ADDR=0xf1000000
++CONFIG_SPL_OPENSBI_SCRATCH_OPTIONS=0x0
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_SPL_DM_SEQ_ALIAS=y
+ CONFIG_SPL_CLK=y
+-- 
+2.43.0
+

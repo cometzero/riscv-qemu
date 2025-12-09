@@ -1,0 +1,71 @@
+From 45c754cea36aa970be953a3e579ff81a63eb461f Mon Sep 17 00:00:00 2001
+From: Jens Wiklander <jens.wiklander@linaro.org>
+Date: Wed, 16 Apr 2025 08:06:36 +0200
+Subject: [RISE 02/10] core: fix crash during syscall ftrace
+
+Syscall ftrace collects data during a syscall. get_fbuf() checks if
+thread_get_id_may_fail() != -1 to see if a function is called under
+normal thread execution. This can lead to an inconsistent state if a
+native interrupt occur while ftrace_enter() or ftrace_return() is
+recording data in the ftrace buffer. So fix this by using
+thread_is_in_normal_mode() to exclude ftrace during interrupt
+processing.
+
+Reported-by: Jerome Forissier <jerome.forissier@linaro.org>
+Closes: https://github.com/OP-TEE/optee_os/issues/7216
+Fixes: 099918f6744c ("ftrace: Add support for syscall function tracer")
+Signed-off-by: Jens Wiklander <jens.wiklander@linaro.org>
+Reviewed-by: Jerome Forissier <jerome.forissier@linaro.org>
+Tested-by: Jerome Forissier <jerome.forissier@linaro.org> (vexpress-qemu_armv8a)
+---
+ core/arch/arm/kernel/thread.c    | 2 +-
+ core/kernel/thread.c             | 2 +-
+ lib/libutils/ext/ftrace/ftrace.c | 3 +--
+ 3 files changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/core/arch/arm/kernel/thread.c b/core/arch/arm/kernel/thread.c
+index d91a48cc7a45..36b4013f1031 100644
+--- a/core/arch/arm/kernel/thread.c
++++ b/core/arch/arm/kernel/thread.c
+@@ -439,7 +439,7 @@ vaddr_t thread_get_saved_thread_sp(void)
+ #endif /*ARM64*/
+ 
+ #ifdef ARM32
+-bool thread_is_in_normal_mode(void)
++bool __noprof thread_is_in_normal_mode(void)
+ {
+ 	return (read_cpsr() & ARM32_CPSR_MODE_MASK) == ARM32_CPSR_MODE_SVC;
+ }
+diff --git a/core/kernel/thread.c b/core/kernel/thread.c
+index 6daf04157217..329401d0451a 100644
+--- a/core/kernel/thread.c
++++ b/core/kernel/thread.c
+@@ -426,7 +426,7 @@ bool thread_is_from_abort_mode(void)
+  * This function should always be accurate, but it might be possible to
+  * implement a more efficient depending on cpu architecture.
+  */
+-bool __weak thread_is_in_normal_mode(void)
++bool __weak __noprof thread_is_in_normal_mode(void)
+ {
+ 	uint32_t exceptions = thread_mask_exceptions(THREAD_EXCP_FOREIGN_INTR);
+ 	struct thread_core_local *l = thread_get_core_local();
+diff --git a/lib/libutils/ext/ftrace/ftrace.c b/lib/libutils/ext/ftrace/ftrace.c
+index d7984e7db920..0d1185a5c8c2 100644
+--- a/lib/libutils/ext/ftrace/ftrace.c
++++ b/lib/libutils/ext/ftrace/ftrace.c
+@@ -37,11 +37,10 @@
+ static __noprof struct ftrace_buf *get_fbuf(void)
+ {
+ #if defined(__KERNEL__)
+-	short int ct = thread_get_id_may_fail();
+ 	struct ts_session *s = NULL;
+ 	struct thread_specific_data *tsd = NULL;
+ 
+-	if (ct == -1)
++	if (!thread_is_in_normal_mode())
+ 		return NULL;
+ 
+ 	if (!(core_mmu_user_va_range_is_defined() &&
+-- 
+2.43.0
+

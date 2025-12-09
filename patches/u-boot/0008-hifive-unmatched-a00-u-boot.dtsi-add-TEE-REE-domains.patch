@@ -1,0 +1,151 @@
+From ddaa3b7f16d3e082eb0cc87a9aebc70cb478e054 Mon Sep 17 00:00:00 2001
+From: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Date: Sat, 26 Apr 2025 00:27:20 -0700
+Subject: [RISE 08/10] hifive-unmatched-a00-u-boot.dtsi: add TEE/REE domains
+
+---
+ .../dts/hifive-unmatched-a00-u-boot.dtsi      | 121 ++++++++++++++++++
+ 1 file changed, 121 insertions(+)
+
+diff --git a/arch/riscv/dts/hifive-unmatched-a00-u-boot.dtsi b/arch/riscv/dts/hifive-unmatched-a00-u-boot.dtsi
+index 39d62776c7c9..a49c64f3f8d5 100644
+--- a/arch/riscv/dts/hifive-unmatched-a00-u-boot.dtsi
++++ b/arch/riscv/dts/hifive-unmatched-a00-u-boot.dtsi
+@@ -18,6 +18,111 @@
+ 
+ 	config {
+ 		u-boot,spl-payload-offset = <0x105000>; /* loader2 @1044KB */
++		opensbi-domains {
++			compatible = "opensbi,domain,config";
++
++			tmem: tmem {
++				compatible = "opensbi,domain,memregion";
++				base = <0x0 0xF1000000>;
++				order = <24>; // 16MiB
++			};
++
++			allmem: allmem {
++				compatible = "opensbi,domain,memregion";
++				base = <0x0 0x0>;
++				order = <64>;
++			};
++
++			tdomain: trusted-domain {
++				compatible = "opensbi,domain,instance";
++				regions = <&allmem 0x3f>;
++				possible-harts = <&cpu1 &cpu2 &cpu3 &cpu4>;
++				boot-hart = <&cpu1>;
++				next-addr = <0x0 0xF1000000>; /* optee_os: CFG_TDDRAM_START */
++				next-mode = <0x1>;
++			};
++
++			udomain: untrusted-domain {
++				compatible = "opensbi,domain,instance";
++				regions = <&tmem 0x0>, <&allmem 0x3f>;
++				possible-harts = <&cpu1 &cpu2 &cpu3 &cpu4>;
++				boot-hart = <&cpu1>;
++				next-addr = <0x0 0x80200000>; /* u-boot: CONFIG_TEXT_BASE */
++				next-mode = <0x1>;
++			};
++		};
++	};
++
++	mpxy_mbox: sbi-mpxy-mbox {
++		compatible = "riscv,sbi-mpxy-mbox";
++		#mbox-cells = <2>;
++	};
++
++	rpmi_mm_0 {
++		opensbi-domain-instance = <&tdomain>;
++		riscv,sbi-mpxy-channel-id = <0x0>;
++		test,owner-hart = <0x1>;
++		test,reqfwd-channel-id = <0x10>;
++		compatible = "riscv,sbi-mpxy-mm";
++	};
++
++	rpmi_mm_1 {
++		opensbi-domain-instance = <&tdomain>;
++		riscv,sbi-mpxy-channel-id = <0x1>;
++		test,owner-hart = <0x2>;
++		test,reqfwd-channel-id = <0x11>;
++		compatible = "riscv,sbi-mpxy-mm";
++	};
++
++	rpmi_mm_2 {
++		opensbi-domain-instance = <&tdomain>;
++		riscv,sbi-mpxy-channel-id = <0x2>;
++		test,owner-hart = <0x3>;
++		test,reqfwd-channel-id = <0x12>;
++		compatible = "riscv,sbi-mpxy-mm";
++	};
++
++	rpmi_mm_3 {
++		opensbi-domain-instance = <&tdomain>;
++		riscv,sbi-mpxy-channel-id = <0x3>;
++		test,owner-hart = <0x4>;
++		test,reqfwd-channel-id = <0x13>;
++		compatible = "riscv,sbi-mpxy-mm";
++	};
++
++	rpmi_reqfwd_0 {
++		riscv,sbi-mpxy-channel-id = <0x10>;
++		test,owner-hart = <0x1>;
++		compatible = "riscv,sbi-mpxy-reqfwd";
++	};
++
++	rpmi_reqfwd_1 {
++		riscv,sbi-mpxy-channel-id = <0x11>;
++		test,owner-hart = <0x2>;
++		compatible = "riscv,sbi-mpxy-reqfwd";
++	};
++
++	rpmi_reqfwd_2 {
++		riscv,sbi-mpxy-channel-id = <0x12>;
++		test,owner-hart = <0x3>;
++		compatible = "riscv,sbi-mpxy-reqfwd";
++	};
++
++	rpmi_reqfwd_3 {
++		riscv,sbi-mpxy-channel-id = <0x13>;
++		test,owner-hart = <0x4>;
++		compatible = "riscv,sbi-mpxy-reqfwd";
++	};
++
++	firmware {
++		optee {
++			compatible = "linaro,optee-tz";
++			method = "smc";
++			mboxes = <&mpxy_mbox 0x00 /* channel id */ 0x00 /* protocol id */ >,
++				 <&mpxy_mbox 0x01 /* channel id */ 0x00 /* protocol id */ >,
++				 <&mpxy_mbox 0x02 /* channel id */ 0x00 /* protocol id */ >,
++				 <&mpxy_mbox 0x03 /* channel id */ 0x00 /* protocol id */ >;
++		};
+ 	};
+ 
+ 	hfclk {
+@@ -30,6 +135,22 @@
+ 
+ };
+ 
++&cpu1 {
++	opensbi-domain = <&tdomain>;
++};
++
++&cpu2 {
++	opensbi-domain = <&tdomain>;
++};
++
++&cpu3 {
++	opensbi-domain = <&tdomain>;
++};
++
++&cpu4 {
++	opensbi-domain = <&tdomain>;
++};
++
+ &clint {
+ 	clocks = <&rtcclk>;
+ };
+-- 
+2.43.0
+

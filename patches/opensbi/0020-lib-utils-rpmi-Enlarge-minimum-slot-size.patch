@@ -1,0 +1,26 @@
+From fcb46ad2d6a6430fc0f44f97410fd6dffaf93333 Mon Sep 17 00:00:00 2001
+From: Alvin Chang <alvinga@andestech.com>
+Date: Tue, 29 Apr 2025 23:02:15 +0800
+Subject: [OPTEE 20/20] lib: utils: rpmi: Enlarge minimum slot size
+
+Signed-off-by: Alvin Chang <alvinga@andestech.com>
+---
+ include/sbi_utils/mailbox/rpmi_msgprot.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/include/sbi_utils/mailbox/rpmi_msgprot.h b/include/sbi_utils/mailbox/rpmi_msgprot.h
+index 87fa261a915b..5460d4955946 100644
+--- a/include/sbi_utils/mailbox/rpmi_msgprot.h
++++ b/include/sbi_utils/mailbox/rpmi_msgprot.h
+@@ -73,7 +73,7 @@
+ #define RPMI_MSG_DATA_SIZE(__slot_size)		((__slot_size) - RPMI_MSG_HDR_SIZE)
+ 
+ /** Minimum slot size in bytes */
+-#define RPMI_SLOT_SIZE_MIN			(64)
++#define RPMI_SLOT_SIZE_MIN			(128)
+ 
+ /** Name length of 16 characters */
+ #define RPMI_NAME_CHARS_MAX			(16)
+-- 
+2.43.0
+

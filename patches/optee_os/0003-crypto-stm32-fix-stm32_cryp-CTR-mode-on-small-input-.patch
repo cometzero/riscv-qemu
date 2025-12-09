@@ -1,0 +1,51 @@
+From a9b7c5a89fa33e02f91ae1de6a635c62e9cfc882 Mon Sep 17 00:00:00 2001
+From: Etienne Carriere <etienne.carriere@foss.st.com>
+Date: Wed, 23 Apr 2025 17:49:43 +0200
+Subject: [RISE 03/10] crypto: stm32: fix stm32_cryp CTR mode on small input
+ buffers
+
+Fix missing cast when saving pre-computed masks in STM32 CRYP driver
+CTR implementation when several small input data is provided to
+the update handler.
+
+The issue could be found, for example, by assigning STM32 CRYP to OP-TEE
+in stm32mp1-157C_DK2 board DTS file (patch below) and running xtest
+regression_4017 with level 15 ("xtest -l 15 regression_4017").
+
+Example of a patch on stm32mp157c-dk2.dts file to use CRYP driver for
+AES operations:
++&cryp1 { status = "okay"; };
++
+ &etzpc {
+ 	st,decprot =
+ (...)
+-               <DECPROT(STM32MP1_ETZPC_CRYP1_ID, DECPROT_NS_RW, DECPROT_UNLOCK)>,
++               <DECPROT(STM32MP1_ETZPC_CRYP1_ID, DECPROT_S_RW, DECPROT_UNLOCK)>,
+ (...)
+ }
+
+Fixes: 5e64ae6796b7 ("crypto: stm32: use CRYP IP for CIPHER algorithms")
+Signed-off-by: Etienne Carriere <etienne.carriere@foss.st.com>
+Acked-by: Gatien Chevallier <gatien.chevallier@foss.st.com>
+Acked-by: Thomas Bourgoin <thomas.bourgoin@foss.st.com>
+Acked-by: Jens Wiklander <jens.wiklander@linaro.org>
+---
+ core/drivers/crypto/stm32/stm32_cryp.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/core/drivers/crypto/stm32/stm32_cryp.c b/core/drivers/crypto/stm32/stm32_cryp.c
+index 4dc952c1f068..a875e8951a3a 100644
+--- a/core/drivers/crypto/stm32/stm32_cryp.c
++++ b/core/drivers/crypto/stm32/stm32_cryp.c
+@@ -1156,7 +1156,7 @@ TEE_Result stm32_cryp_update(struct stm32_cryp_context *ctx, bool last_block,
+ 			 */
+ 
+ 			/* We save remaining mask and its new size */
+-			memmove(ctx->extra, ctx->extra + j,
++			memmove(ctx->extra, (uint8_t *)ctx->extra + j,
+ 				ctx->extra_size - j);
+ 			ctx->extra_size -= j;
+ 
+-- 
+2.43.0
+

@@ -1,0 +1,89 @@
+From 5ac8447abb534b62ea97ea2863369f3a14d18a6a Mon Sep 17 00:00:00 2001
+From: Alvin Chang <alvinga@andestech.com>
+Date: Sun, 23 Feb 2025 23:32:47 +0800
+Subject: [OPTEE 17/20] lib: sbi: Export mpxy_find_channel() as
+ sbi_mpxy_find_channel()
+
+Export mpxy_find_channel() so that other modules can use it.
+
+Signed-off-by: Alvin Chang <alvinga@andestech.com>
+---
+ include/sbi/sbi_mpxy.h |  3 +++
+ lib/sbi/sbi_mpxy.c     | 12 ++++++------
+ 2 files changed, 9 insertions(+), 6 deletions(-)
+
+diff --git a/include/sbi/sbi_mpxy.h b/include/sbi/sbi_mpxy.h
+index 9da2791e100e..1b20282acff2 100644
+--- a/include/sbi/sbi_mpxy.h
++++ b/include/sbi/sbi_mpxy.h
+@@ -147,6 +147,9 @@ struct sbi_mpxy_channel {
+ /** Register a Message proxy channel */
+ int sbi_mpxy_register_channel(struct sbi_mpxy_channel *channel);
+ 
++/** Find a registered Message proxy channel by channel ID */
++struct sbi_mpxy_channel *sbi_mpxy_find_channel(u32 channel_id);
++
+ /** Initialize Message proxy subsystem */
+ int sbi_mpxy_init(struct sbi_scratch *scratch);
+ 
+diff --git a/lib/sbi/sbi_mpxy.c b/lib/sbi/sbi_mpxy.c
+index 681cfbe9d9b5..0020e0c4fa67 100644
+--- a/lib/sbi/sbi_mpxy.c
++++ b/lib/sbi/sbi_mpxy.c
+@@ -144,7 +144,7 @@ static inline bool mpxy_is_std_attr(u32 attr_id)
+ }
+ 
+ /** Find channel_id in registered channels list */
+-static struct sbi_mpxy_channel *mpxy_find_channel(u32 channel_id)
++struct sbi_mpxy_channel *sbi_mpxy_find_channel(u32 channel_id)
+ {
+ 	struct sbi_mpxy_channel *channel;
+ 
+@@ -222,7 +222,7 @@ int sbi_mpxy_register_channel(struct sbi_mpxy_channel *channel)
+ 	if (!channel)
+ 		return SBI_EINVAL;
+ 
+-	if (mpxy_find_channel(channel->channel_id))
++	if (sbi_mpxy_find_channel(channel->channel_id))
+ 		return SBI_EALREADY;
+ 
+ 	/* Initialize channel specific attributes */
+@@ -449,7 +449,7 @@ int sbi_mpxy_read_attrs(u32 channel_id, u32 base_attr_id, u32 attr_count)
+ 	if (!mpxy_shmem_enabled(ms))
+ 		return SBI_ERR_NO_SHMEM;
+ 
+-	struct sbi_mpxy_channel *channel = mpxy_find_channel(channel_id);
++	struct sbi_mpxy_channel *channel = sbi_mpxy_find_channel(channel_id);
+ 	if (!channel)
+ 		return SBI_ERR_NOT_SUPPORTED;
+ 
+@@ -600,7 +600,7 @@ int sbi_mpxy_write_attrs(u32 channel_id, u32 base_attr_id, u32 attr_count)
+ 	if (!mpxy_shmem_enabled(ms))
+ 		return SBI_ERR_NO_SHMEM;
+ 
+-	channel = mpxy_find_channel(channel_id);
++	channel = sbi_mpxy_find_channel(channel_id);
+ 	if (!channel)
+ 		return SBI_ERR_NOT_SUPPORTED;
+ 
+@@ -690,7 +690,7 @@ int sbi_mpxy_send_message(u32 channel_id, u8 msg_id,
+ 	if (!mpxy_shmem_enabled(ms))
+ 		return SBI_ERR_NO_SHMEM;
+ 
+-	channel = mpxy_find_channel(channel_id);
++	channel = sbi_mpxy_find_channel(channel_id);
+ 	if (!channel)
+ 		return SBI_ERR_NOT_SUPPORTED;
+ 
+@@ -747,7 +747,7 @@ int sbi_mpxy_get_notification_events(u32 channel_id, unsigned long *events_len)
+ 	if (!mpxy_shmem_enabled(ms))
+ 		return SBI_ERR_NO_SHMEM;
+ 
+-	channel = mpxy_find_channel(channel_id);
++	channel = sbi_mpxy_find_channel(channel_id);
+ 	if (!channel || !channel->get_notification_events)
+ 		return SBI_ERR_NOT_SUPPORTED;
+ 
+-- 
+2.43.0
+

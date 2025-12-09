@@ -1,0 +1,122 @@
+From 8f7cea6e551ced4a4e48598b1d7e38a18c30429b Mon Sep 17 00:00:00 2001
+From: Alvin Chang <alvinga@andestech.com>
+Date: Sun, 23 Feb 2025 21:00:55 +0800
+Subject: [RISE 07/10] core: riscv: Add header file for definitions of RISC-V
+ RPMI
+
+RISC-V RPMI defines a message based communication for system management
+and control. The communication between Linux and OP-TEE relies on RPMI
+MM and Request Forward service groups. This commit adds a header file
+which defines necessary macros and structures for development.
+
+Signed-off-by: Alvin Chang <alvinga@andestech.com>
+---
+ core/arch/riscv/include/rpmi_msgprot.h | 96 ++++++++++++++++++++++++++
+ 1 file changed, 96 insertions(+)
+ create mode 100644 core/arch/riscv/include/rpmi_msgprot.h
+
+diff --git a/core/arch/riscv/include/rpmi_msgprot.h b/core/arch/riscv/include/rpmi_msgprot.h
+new file mode 100644
+index 000000000000..d31192cdc551
+--- /dev/null
++++ b/core/arch/riscv/include/rpmi_msgprot.h
+@@ -0,0 +1,96 @@
++// SPDX-License-Identifier: BSD-2-Clause
++/*
++ * Copyright (c) 2024-2025 Andes Technology Corporation
++ */
++
++#ifndef __RPMI_MSGPROT_H__
++#define __RPMI_MSGPROT_H__
++
++/** Message Header Size in bytes */
++#define RPMI_MSG_HDR_SIZE		(8)
++/** Data field size in bytes */
++#define RPMI_MSG_DATA_SIZE(__slot_size) ((__slot_size) - RPMI_MSG_HDR_SIZE)
++/** Minimum slot size in bytes */
++#define RPMI_SLOT_SIZE_MIN		(128)
++
++/** RPMI Error Types */
++enum rpmi_error {
++	/* Success */
++	RPMI_SUCCESS		= 0,
++	/* General failure  */
++	RPMI_ERR_FAILED		= -1,
++	/* Service or feature not supported */
++	RPMI_ERR_NOTSUPP	= -2,
++	/* Invalid Parameter  */
++	RPMI_ERR_INVALID_PARAM    = -3,
++	/*
++	 * Denied to insufficient permissions
++	 * or due to unmet prerequisite
++	 */
++	RPMI_ERR_DENIED		= -4,
++	/* Invalid address or offset */
++	RPMI_ERR_INVALID_ADDR	= -5,
++	/*
++	 * Operation failed as it was already in
++	 * progress or the state has changed already
++	 * for which the operation was carried out.
++	 */
++	RPMI_ERR_ALREADY	= -6,
++	/*
++	 * Error in implementation which violates
++	 * the specification version
++	 */
++	RPMI_ERR_EXTENSION	= -7,
++	/* Operation failed due to hardware issues */
++	RPMI_ERR_HW_FAULT	= -8,
++	/* System, device or resource is busy */
++	RPMI_ERR_BUSY		= -9,
++	/* System or device or resource in invalid state */
++	RPMI_ERR_INVALID_STATE	= -10,
++	/* Index, offset or address is out of range */
++	RPMI_ERR_BAD_RANGE	= -11,
++	/* Operation timed out */
++	RPMI_ERR_TIMEOUT	= -12,
++	/*
++	 * Error in input or output or
++	 * error in sending or receiving data
++	 * through communication medium
++	 */
++	RPMI_ERR_IO		= -13,
++	/* No data available */
++	RPMI_ERR_NO_DATA	= -14,
++	RPMI_ERR_RESERVED_START	= -15,
++	RPMI_ERR_RESERVED_END	= -127,
++	RPMI_ERR_VENDOR_START	= -128,
++};
++
++struct rpmi_reqfwd_retrieve_current_message_req {
++	uint32_t start_index;
++};
++
++struct rpmi_reqfwd_retrieve_current_message_resp {
++	int32_t status;
++	uint32_t remaining;
++	uint32_t returned;
++	/* remaining space need to be adjusted for the above 3 u32's */
++	uint8_t request_message[RPMI_MSG_DATA_SIZE(RPMI_SLOT_SIZE_MIN) -
++				(sizeof(uint32_t) * 3)];
++};
++
++struct rpmi_reqfwd_complete_current_message_req {
++	uint8_t response_data[RPMI_MSG_DATA_SIZE(RPMI_SLOT_SIZE_MIN)];
++};
++
++struct rpmi_reqfwd_complete_current_message_resp {
++	int32_t status;
++};
++
++/** RPMI Request Forward ServiceGroup Service IDs */
++enum rpmi_reqfwd_service_id {
++	RPMI_REQFWD_SRV_ENABLE_NOTIFICATION = 0x01,
++	RPMI_REQFWD_SRV_RETRIEVE_CURRENT_MESSAGE = 0x02,
++	RPMI_REQFWD_SRV_COMPLETE_CURRENT_MESSAGE = 0x03,
++	RPMI_REQFWD_SRV_MAX_COUNT,
++};
++
++#endif  /* __RPMI_MSGPROT_H__ */
+-- 
+2.43.0
+

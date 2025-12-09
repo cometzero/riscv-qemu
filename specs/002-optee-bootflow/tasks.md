@@ -15,13 +15,13 @@
 
 **Purpose**: Project initialization, patch extraction, and submodule setup
 
-- [ ] T001 Create `patches/` directory structure: `patches/opensbi/`, `patches/linux/`, `patches/u-boot/`, `patches/optee_os/`
-- [ ] T002 Clone RISE optee_os repository and extract patches with `git format-patch`
-- [ ] T003 [P] Clone RISE opensbi repository and extract OP-TEE SPD patches with `git format-patch`
-- [ ] T004 [P] Clone RISE linux repository and extract TEE driver patches with `git format-patch`
-- [ ] T005 [P] Clone RISE u-boot repository and extract OP-TEE patches if any with `git format-patch`
-- [ ] T006 Add `sources/optee_os` as new git submodule pointing to upstream OP-TEE
-- [ ] T007 Create `configs/optee/` directory for OP-TEE OS configuration
+- [x] T001 Create `patches/` directory structure: `patches/opensbi/`, `patches/linux/`, `patches/u-boot/`, `patches/optee_os/`
+- [x] T002 Clone RISE optee_os repository and extract patches with `git format-patch`
+- [x] T003 [P] Clone RISE opensbi repository and extract OP-TEE SPD patches with `git format-patch`
+- [x] T004 [P] Clone RISE linux repository and extract TEE driver patches with `git format-patch`
+- [x] T005 [P] Clone RISE u-boot repository and extract OP-TEE patches if any with `git format-patch`
+- [x] T006 Add `sources/optee_os` as new git submodule pointing to upstream OP-TEE
+- [x] T007 Create `configs/optee/` directory for OP-TEE OS configuration
 
 ---
 
@@ -35,10 +35,10 @@
 - [ ] T009 Apply extracted patches to `sources/opensbi` and create local branch `optee-spd`
 - [ ] T010 Apply extracted patches to `sources/linux` and create local branch `optee-tee-driver`
 - [ ] T011 Apply extracted patches to `sources/u-boot` if needed and create local branch `optee-support`
-- [ ] T012 Create `configs/optee/qemu_virt.mk` with OP-TEE OS build configuration for RISC-V QEMU virt
-- [ ] T013 [P] Create `configs/linux/optee.fragment` with kernel config fragment for TEE driver
-- [ ] T014 [P] Create `configs/opensbi/optee_spd.mk` with OpenSBI OP-TEE SPD configuration
-- [ ] T015 Document patch versions and sources in `docs/optee-patches.md`
+- [x] T012 Create `configs/optee/qemu_virt.mk` with OP-TEE OS build configuration for RISC-V QEMU virt
+- [x] T013 [P] Create `configs/linux/optee.fragment` with kernel config fragment for TEE driver
+- [x] T014 [P] Create `configs/opensbi/optee_spd.mk` with OpenSBI OP-TEE SPD configuration
+- [x] T015 Document patch versions and sources in `docs/optee-patches.md`
 
 **Checkpoint**: Patches applied, configs created - component builds can begin
 
@@ -56,11 +56,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Create `scripts/build_optee.sh` build script for OP-TEE OS
-- [ ] T017 [US1] Update `scripts/build_opensbi.sh` to add `--optee` flag and SPD build logic
-- [ ] T018 [US1] Update `scripts/build_linux.sh` to add `--optee` flag and TEE driver config
-- [ ] T019 [US1] Update `scripts/build_all.sh` to add `--optee` flag and call OP-TEE builds
-- [ ] T020 [US1] Update `scripts/run_qemu.sh` to add `--optee` flag with OP-TEE boot configuration
+- [x] T016 [US1] Create `scripts/build_optee.sh` build script for OP-TEE OS
+- [x] T017 [US1] Update `scripts/build_opensbi.sh` to add `--optee` flag and SPD build logic
+- [x] T018 [US1] Update `scripts/build_linux.sh` to add `--optee` flag and TEE driver config
+- [x] T019 [US1] Update `scripts/build_all.sh` to add `--optee` flag and call OP-TEE builds
+- [x] T020 [US1] Update `scripts/run_qemu.sh` to add `--optee` flag with OP-TEE boot configuration
 - [ ] T021 [US1] Build OP-TEE OS and verify `tee.bin` is produced in `build/optee/`
 - [ ] T022 [US1] Build OpenSBI with OP-TEE SPD and verify `fw_dynamic.bin` includes OP-TEE
 - [ ] T023 [US1] Build Linux with TEE driver and verify `Image` includes TEE support
@@ -86,7 +86,7 @@
 - [ ] T027 [US2] Update `configs/buildroot/qemu_riscv64_optee.defconfig` to include optee-client package
 - [ ] T028 [US2] Update `configs/buildroot/qemu_riscv64_optee.defconfig` to include optee-test (xtest) package
 - [ ] T029 [US2] Update `configs/buildroot/qemu_riscv64_optee.defconfig` to include optee-examples package
-- [ ] T030 [US2] Update `scripts/build_buildroot.sh` to add `--optee` flag with OP-TEE packages
+- [x] T030 [US2] Update `scripts/build_buildroot.sh` to add `--optee` flag with OP-TEE packages
 - [ ] T031 [US2] Rebuild Buildroot with OP-TEE packages and verify `xtest` is included in rootfs
 - [ ] T032 [US2] Boot QEMU with OP-TEE and run `xtest` to verify tests execute
 - [ ] T033 [US2] Run `optee_example_hello_world` and verify TA execution

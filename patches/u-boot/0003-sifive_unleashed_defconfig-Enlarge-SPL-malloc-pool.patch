@@ -1,0 +1,33 @@
+From d953c04c801b6e95544942ecd0cdaab6b7a636a7 Mon Sep 17 00:00:00 2001
+From: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Date: Sun, 5 Jan 2025 02:21:12 -0800
+Subject: [RISE 03/10] sifive_unleashed_defconfig: Enlarge SPL malloc pool
+
+Fixes:
+	U-Boot SPL 2024.10 (Jan 05 2025 - 02:17:16 -0800)
+	Trying to boot from MMC1
+	Could not get FIT buffer of 1502720 bytes
+		check CONFIG_SPL_SYS_MALLOC_SIZE
+	No device tree specified in SPL image
+	### ERROR ### Please RESET the board ###
+
+Signed-off-by: Yu-Chien Peter Lin <peter.lin@sifive.com>
+---
+ configs/sifive_unleashed_defconfig | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/configs/sifive_unleashed_defconfig b/configs/sifive_unleashed_defconfig
+index 226e756c3dc7..68b67651ce5b 100644
+--- a/configs/sifive_unleashed_defconfig
++++ b/configs/sifive_unleashed_defconfig
+@@ -33,6 +33,7 @@ CONFIG_MISC_INIT_R=y
+ CONFIG_SPL_MAX_SIZE=0x100000
+ # CONFIG_SPL_SHARES_INIT_SP_ADDR is not set
+ CONFIG_SPL_SYS_MALLOC=y
++CONFIG_SPL_SYS_MALLOC_SIZE=0x0200000
+ CONFIG_SPL_DM_SPI_FLASH=y
+ CONFIG_SPL_DM_RESET=y
+ CONFIG_SPL_SPI_LOAD=y
+-- 
+2.43.0
+

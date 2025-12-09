@@ -1,0 +1,74 @@
+From f3cce5b97f15f5ca87409902ca6a856b5012a5b3 Mon Sep 17 00:00:00 2001
+From: Anup Patel <apatel@ventanamicro.com>
+Date: Mon, 12 May 2025 14:08:27 +0530
+Subject: [OPTEE 10/20] lib: utils/mpxy: Remove p2a_db_index from RPMI system
+ MSI attributes
+
+The discovery of P2A doorbell system MSI index is now through RPMI
+shared memory DT node so remove p2a_db_index from RPMI system MSI
+attributes and access it as a mailbox channel attribute.
+
+Signed-off-by: Anup Patel <apatel@ventanamicro.com>
+Link: https://lore.kernel.org/r/20250512083827.804151-5-apatel@ventanamicro.com
+Signed-off-by: Anup Patel <anup@brainfault.org>
+---
+ include/sbi_utils/mailbox/rpmi_msgprot.h |  1 -
+ lib/utils/mpxy/fdt_mpxy_rpmi_sysmsi.c    | 13 +++++++++----
+ 2 files changed, 9 insertions(+), 5 deletions(-)
+
+diff --git a/include/sbi_utils/mailbox/rpmi_msgprot.h b/include/sbi_utils/mailbox/rpmi_msgprot.h
+index 058b7e906831..e0d738826d30 100644
+--- a/include/sbi_utils/mailbox/rpmi_msgprot.h
++++ b/include/sbi_utils/mailbox/rpmi_msgprot.h
+@@ -285,7 +285,6 @@ enum rpmi_sysmsi_service_id {
+ struct rpmi_sysmsi_get_attributes_resp {
+ 	s32 status;
+ 	u32 sys_num_msi;
+-	u32 p2a_db_index;
+ 	u32 flag0;
+ 	u32 flag1;
+ };
+diff --git a/lib/utils/mpxy/fdt_mpxy_rpmi_sysmsi.c b/lib/utils/mpxy/fdt_mpxy_rpmi_sysmsi.c
+index 87e6aa5314d8..b4bab85aeb95 100644
+--- a/lib/utils/mpxy/fdt_mpxy_rpmi_sysmsi.c
++++ b/lib/utils/mpxy/fdt_mpxy_rpmi_sysmsi.c
+@@ -32,10 +32,9 @@ static int mpxy_rpmi_sysmis_xfer(void *context, struct mbox_chan *chan,
+ 	case RPMI_SYSMSI_SRV_GET_ATTRIBUTES:
+ 		((u32 *)xfer->rx)[0] = cpu_to_le32(RPMI_SUCCESS);
+ 		((u32 *)xfer->rx)[1] = cpu_to_le32(smg->sys_num_msi);
+-		((u32 *)xfer->rx)[2] = -1U;
++		((u32 *)xfer->rx)[2] = 0;
+ 		((u32 *)xfer->rx)[3] = 0;
+-		((u32 *)xfer->rx)[4] = 0;
+-		args->rx_data_len = 5 * sizeof(u32);
++		args->rx_data_len = 4 * sizeof(u32);
+ 		break;
+ 	case RPMI_SYSMSI_SRV_GET_MSI_ATTRIBUTES:
+ 	case RPMI_SYSMSI_SRV_SET_MSI_STATE:
+@@ -90,8 +89,14 @@ static int mpxy_rpmi_sysmsi_setup(void **context, struct mbox_chan *chan,
+ 	struct rpmi_sysmsi_get_msi_attributes_req gmareq;
+ 	struct rpmi_sysmsi_get_attributes_resp garesp;
+ 	struct mpxy_rpmi_sysmsi *smg;
++	u32 p2a_db_index;
+ 	int rc, i;
+ 
++	rc = mbox_chan_get_attribute(chan, RPMI_CHANNEL_ATTR_P2A_DOORBELL_SYSMSI_INDEX,
++				     &p2a_db_index);
++	if (rc)
++		return rc;
++
+ 	rc = rpmi_normal_request_with_status(chan, RPMI_SYSMSI_SRV_GET_ATTRIBUTES,
+ 					     NULL, 0, 0, &garesp, rpmi_u32_count(garesp),
+ 					     rpmi_u32_count(garesp));
+@@ -122,7 +127,7 @@ static int mpxy_rpmi_sysmsi_setup(void **context, struct mbox_chan *chan,
+ 			return rc;
+ 		}
+ 
+-		if (garesp.p2a_db_index == i ||
++		if (p2a_db_index == i ||
+ 		    (gmaresp.flag0 & RPMI_SYSMSI_MSI_ATTRIBUTES_FLAG0_PREF_PRIV))
+ 			bitmap_set(smg->sys_msi_denied_bmap, i, 1);
+ 	}
+-- 
+2.43.0
+

@@ -1,0 +1,72 @@
+From 017a161788310ef515831821f14597e657512f97 Mon Sep 17 00:00:00 2001
+From: Parshintsev Anatoly <anatoly.parshintsev@syntacore.com>
+Date: Mon, 21 Apr 2025 15:47:29 +0300
+Subject: [OPTEE 05/20] Makefile: fix missing .debug_frame DWARF section for
+ GCC
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+When OpenSBI is built with a relatively new compiler (gcc-13 and greater)
+I observed that GDB is unable to produce proper backtraces and some
+variable values appear corrupted (even if the associated DWARF
+location descriptor is correct).
+
+Turns out that to properly work with debug information, debuggers often
+need to unwind the stack. They generally rely on Call Frame Information
+(CFI) records provided by the compiler to facilitate this task.
+Currently, the GCC compiler offers two mechanisms:
+
+- `.debug_frame` section (as described in the DWARF specification).
+- `.eh_frame` sections (as described in LSB documents).
+
+The latter (`.eh_frame`) supports stack unwinding at runtime, providing
+a framework for C++ exceptions or enabling backtrace generation using
+libraries like libunwind. However, the downside of this approach is that
+these sections should be part of loadable segments.
+
+The former (`.debug_frame`) is simply an ordinary debug section.
+
+Starting from GCC 13, Linux targets enable the `-fasynchronous-unwind-tables`
+and `-funwind-tables` flags by default. Relevant commit:
+https://github.com/gcc-mirror/gcc/commit/3cd08f7168
+
+When these flags are active, the compiler generates `.eh_frame` sections
+instead of `.debug_frame`. Since OpenSBI is built using the **Linux
+toolchain**, this behavior applies to OpenSBI as well.
+
+The problem arises because the SBI build system uses `-Wl,--gc-sections`,
+which discards the `.eh_frame` section.
+
+Possible Fixes:
+
+1. Enforce `.debug_frame` generation – Modify compiler flags to generate
+`.debug_frame` instead of `.eh_frame`.
+2. Preserve `.eh_frame` in the linker script – Add `KEEP(*(.eh_frame))`
+to ensure the section is not discarded.
+
+I chose Option 1 because it avoids any runtime overhead.
+
+Signed-off-by: Parshintsev Anatoly <anatoly.parshintsev@syntacore.com>
+Reviewed-by: Anup Patel <anup@brainfault.org>
+Link: https://lore.kernel.org/r/20250421124729.36364-1-anatoly.parshintsev@syntacore.com
+Signed-off-by: Anup Patel <anup@brainfault.org>
+---
+ Makefile | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Makefile b/Makefile
+index e90836c7c4ad..85748bc403db 100644
+--- a/Makefile
++++ b/Makefile
+@@ -362,6 +362,7 @@ GENFLAGS	+=	$(firmware-genflags-y)
+ 
+ CFLAGS		=	-g -Wall -Werror -ffreestanding -nostdlib -fno-stack-protector -fno-strict-aliasing -ffunction-sections -fdata-sections
+ CFLAGS		+=	-fno-omit-frame-pointer -fno-optimize-sibling-calls
++CFLAGS		+=	-fno-asynchronous-unwind-tables -fno-unwind-tables
+ # Optionally supported flags
+ ifeq ($(CC_SUPPORT_VECTOR),y)
+ CFLAGS		+=	-DOPENSBI_CC_SUPPORT_VECTOR
+-- 
+2.43.0
+

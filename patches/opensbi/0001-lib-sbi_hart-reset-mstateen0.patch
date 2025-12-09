@@ -1,0 +1,39 @@
+From dac15cb91058f324df909dba4bfcb52f42ff9224 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Radim=20Kr=C4=8Dm=C3=A1=C5=99?= <rkrcmar@ventanamicro.com>
+Date: Tue, 29 Apr 2025 16:25:48 +0200
+Subject: [OPTEE 01/20] lib: sbi_hart: reset mstateen0
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The current logic clears some bits based on SBI known extensions.
+Be safe and do not leave enabled anything that SBI doesn't control.
+
+This is not a breaking change, because the register must be initialized
+to 0 by the ISA on reset, but it is better to not depend on it when we
+don't need to.
+
+Reviewed-by: Anup Patel <anup@brainfault.org>
+Signed-off-by: Radim Krčmář <rkrcmar@ventanamicro.com>
+Link: https://lore.kernel.org/r/20250429142549.3673976-8-rkrcmar@ventanamicro.com
+Signed-off-by: Anup Patel <anup@brainfault.org>
+---
+ lib/sbi/sbi_hart.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/lib/sbi/sbi_hart.c b/lib/sbi/sbi_hart.c
+index fc37b249b892..c6a779490c70 100644
+--- a/lib/sbi/sbi_hart.c
++++ b/lib/sbi/sbi_hart.c
+@@ -89,7 +89,7 @@ static void mstatus_init(struct sbi_scratch *scratch)
+ 		csr_write(CSR_HSTATUS, 0);
+ 
+ 	if (sbi_hart_has_extension(scratch, SBI_HART_EXT_SMSTATEEN)) {
+-		mstateen_val = csr_read64(CSR_MSTATEEN0);
++		mstateen_val = 0;
+ 		mstateen_val |= SMSTATEEN_STATEN;
+ 		mstateen_val |= SMSTATEEN0_CONTEXT;
+ 		mstateen_val |= SMSTATEEN0_HSENVCFG;
+-- 
+2.43.0
+

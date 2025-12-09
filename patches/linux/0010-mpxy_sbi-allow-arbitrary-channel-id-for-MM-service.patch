@@ -1,0 +1,78 @@
+From f98818ba0b38e6a4b0812c5c2d67fea702dfd6d1 Mon Sep 17 00:00:00 2001
+From: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Date: Sat, 26 Apr 2025 00:02:53 -0700
+Subject: [RISE 10/10] mpxy_sbi: allow arbitrary channel id for MM service
+
+Currently, it assumes
+1. channel id is equal to hartid
+2. hartid is cpuid
+
+If hart0 is not boot hart of linux, it can use wrong MPXY channel
+for requesting MM service, and its channel id should be configurable.
+
+Temporarily use test,owner-hart properties to encode hart id of
+channel owner.
+
+Signed-off-by: Yu-Chien Peter Lin <peter.lin@sifive.com>
+---
+ drivers/tee/optee/mpxy_sbi.c | 35 ++++++++++++++++++++++++++++++++---
+ 1 file changed, 32 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/tee/optee/mpxy_sbi.c b/drivers/tee/optee/mpxy_sbi.c
+index 1d5dff87fd87..791150f1fa1e 100644
+--- a/drivers/tee/optee/mpxy_sbi.c
++++ b/drivers/tee/optee/mpxy_sbi.c
+@@ -1495,8 +1495,10 @@ static int riscv_mpxy_mbox_probe(struct platform_device *pdev)
+ {
+ 	struct device *dev = &pdev->dev;
+ 	struct rpmi_mbox_message msg;
+-	unsigned int nr_cpus;
+ 	int ret, cpuid;
++	u32 channel_id, owner_hart;
++	struct device_node *np;
++	unsigned int nr_cpus;
+ 
+ 	/* Allocate RPXY TEE context */
+ 	context = devm_kzalloc(dev, sizeof(*context), GFP_KERNEL);
+@@ -1523,9 +1525,36 @@ static int riscv_mpxy_mbox_probe(struct platform_device *pdev)
+ 	/* Request mailbox channels per hart */
+ 	context->chan = devm_kcalloc(dev, nr_cpus, sizeof(*context->chan),
+ 				     GFP_KERNEL);
+-	for (cpuid = 0; cpuid < nr_cpus; cpuid++) {
++	/*
++	 * Sample MM DT node:
++	 *
++	 * rpmi_mm_0 {
++	 * 	opensbi-domain-instance = <&tdomain>;
++	 * 	test,sbi-mpxy-channel-id = <0x0>;
++	 * 	test,ower-hart = <0x1>;
++	 * 	compatible = "riscv,sbi-mpxy-mm";
++	 * };
++	 */
++	for_each_compatible_node(np, NULL, "riscv,sbi-mpxy-mm") {
++
++		ret = of_property_read_u32(np, "riscv,sbi-mpxy-channel-id", &channel_id);
++		if (ret) {
++			panic("Missing riscv,sbi-mpxy-channel-id property in node %pOF\n", np);
++		}
++
++		ret = of_property_read_u32(np, "test,owner-hart", &owner_hart);
++		if (ret) {
++			panic("Missing test,owner-hart property in node %pOF\n", np);
++		}
++
++		/* get cpuid by hartid */
++		cpuid = riscv_hartid_to_cpuid(owner_hart);
++		if (cpuid < 0) {
++			panic("Invalid hartid %u in node %pOF\n", owner_hart, np);
++		}
++
+ 		context->chan[cpuid] = mbox_request_channel(&context->client,
+-							    cpuid);
++							    channel_id);
+ 		if (IS_ERR(context->chan[cpuid])) {
+ 			ret = PTR_ERR(context->chan[cpuid]);
+ 			dev_err_probe(dev, ret, "Failed to get mbox channel\n");
+-- 
+2.43.0
+

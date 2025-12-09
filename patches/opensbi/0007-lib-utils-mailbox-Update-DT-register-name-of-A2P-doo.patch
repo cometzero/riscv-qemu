@@ -1,0 +1,41 @@
+From 8ca08044c24c34ed4247c8a31fbce0e3feeaa518 Mon Sep 17 00:00:00 2001
+From: Anup Patel <apatel@ventanamicro.com>
+Date: Mon, 12 May 2025 14:08:24 +0530
+Subject: [OPTEE 07/20] lib: utils/mailbox: Update DT register name of A2P
+ doorbell
+
+The latest device tree bindings define A2P doorbell register name as
+"a2p-doorbell" so update rpmi_shmem_transport_init() accordingly.
+
+Signed-off-by: Anup Patel <apatel@ventanamicro.com>
+Link: https://lore.kernel.org/r/20250512083827.804151-2-apatel@ventanamicro.com
+Signed-off-by: Anup Patel <anup@brainfault.org>
+---
+ lib/utils/mailbox/fdt_mailbox_rpmi_shmem.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/lib/utils/mailbox/fdt_mailbox_rpmi_shmem.c b/lib/utils/mailbox/fdt_mailbox_rpmi_shmem.c
+index 5b858d368239..2faf51e4d22e 100644
+--- a/lib/utils/mailbox/fdt_mailbox_rpmi_shmem.c
++++ b/lib/utils/mailbox/fdt_mailbox_rpmi_shmem.c
+@@ -651,7 +651,7 @@ static int rpmi_shmem_transport_init(struct rpmi_shmem_mbox_controller *mctl,
+ 		SPIN_LOCK_INIT(qctx->queue_lock);
+ 	}
+ 
+-	/* get the db-reg property name */
++	/* get the a2p-doorbell property name */
+ 	name = fdt_stringlist_get(fdt, nodeoff, "reg-names", qid, &len);
+ 	if (!name || (name && len < 0))
+ 		return len;
+@@ -659,7 +659,7 @@ static int rpmi_shmem_transport_init(struct rpmi_shmem_mbox_controller *mctl,
+ 	/* fetch doorbell register address*/
+ 	ret = fdt_get_node_addr_size(fdt, nodeoff, qid, &reg_addr,
+ 				       &reg_size);
+-	if (!ret && !(strncmp(name, "db-reg", strlen("db-reg")))) {
++	if (!ret && !(strncmp(name, "a2p-doorbell", strlen("a2p-doorbell")))) {
+ 		mctl->mb_regs = (void *)(unsigned long)reg_addr;
+ 		ret = sbi_domain_root_add_memrange(reg_addr, reg_size, reg_size,
+ 						   (SBI_DOMAIN_MEMREGION_MMIO |
+-- 
+2.43.0
+

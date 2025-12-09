@@ -1,0 +1,106 @@
+From 1cba0c67789c58011c65547dd289b7e3acf7be6a Mon Sep 17 00:00:00 2001
+From: Yu Chien Peter Lin <peterlin@andestech.com>
+Date: Thu, 28 Mar 2024 10:38:28 +0800
+Subject: [OPTEE 16/20] sbi: sbi_domain_context: Allow cross domain IPI
+
+Interrupts triggered during OP-TEE's execution are treated as
+foreign interrupts and should be handled by Linux. Therefore,
+do not save or restore them during domain context switching,
+and allow IPIs to be received by all harts.
+
+See: https://github.com/OP-TEE/optee_os/issues/6767
+
+Revisit: allow specifying IPI domain
+
+Signed-off-by: Yu Chien Peter Lin <peterlin@andestech.com>
+Signed-off-by: Alvin Chang <alvinga@andestech.com>
+---
+ include/sbi/sbi_domain.h     |  9 +++++++++
+ lib/sbi/sbi_domain.c         | 16 ++++++++++++++++
+ lib/sbi/sbi_domain_context.c |  1 -
+ lib/sbi/sbi_hsm.c            |  3 ++-
+ 4 files changed, 27 insertions(+), 2 deletions(-)
+
+diff --git a/include/sbi/sbi_domain.h b/include/sbi/sbi_domain.h
+index e9cff0b1d5e1..cdd1ec619c08 100644
+--- a/include/sbi/sbi_domain.h
++++ b/include/sbi/sbi_domain.h
+@@ -235,6 +235,15 @@ bool sbi_domain_is_assigned_hart(const struct sbi_domain *dom, u32 hartindex);
+ int sbi_domain_get_assigned_hartmask(const struct sbi_domain *dom,
+ 				     struct sbi_hartmask *mask);
+ 
++/**
++ * Get the possible HART mask for given domain
++ * @param dom pointer to domain
++ * @param mask the output hartmask to fill
++ * @return 0 on success and SBI_Exxx (< 0) on failure
++ */
++int sbi_domain_get_possible_hartmask(const struct sbi_domain *dom,
++				     struct sbi_hartmask *mask);
++
+ /**
+  * Initialize a domain memory region based on it's physical
+  * address and size.
+diff --git a/lib/sbi/sbi_domain.c b/lib/sbi/sbi_domain.c
+index 461c7e5379db..84b689134cb0 100644
+--- a/lib/sbi/sbi_domain.c
++++ b/lib/sbi/sbi_domain.c
+@@ -93,6 +93,22 @@ int sbi_domain_get_assigned_hartmask(const struct sbi_domain *dom,
+ 	return ret;
+ }
+ 
++int sbi_domain_get_possible_hartmask(const struct sbi_domain *dom,
++				     struct sbi_hartmask *mask)
++{
++	ulong ret = 0;
++	struct sbi_domain *tdom = (struct sbi_domain *)dom;
++
++	if (!dom) {
++		sbi_hartmask_clear_all(mask);
++		return 0;
++	}
++
++	sbi_hartmask_copy(mask, (struct sbi_hartmask *)tdom->possible_harts);
++
++	return ret;
++}
++
+ void sbi_domain_memregion_init(unsigned long addr,
+ 				unsigned long size,
+ 				unsigned long flags,
+diff --git a/lib/sbi/sbi_domain_context.c b/lib/sbi/sbi_domain_context.c
+index 2b19fcc7cf2d..b5855f63347e 100644
+--- a/lib/sbi/sbi_domain_context.c
++++ b/lib/sbi/sbi_domain_context.c
+@@ -127,7 +127,6 @@ static void switch_to_next_domain_context(struct hart_context *ctx,
+ 	ctx->sepc	= csr_swap(CSR_SEPC, dom_ctx->sepc);
+ 	ctx->scause	= csr_swap(CSR_SCAUSE, dom_ctx->scause);
+ 	ctx->stval	= csr_swap(CSR_STVAL, dom_ctx->stval);
+-	ctx->sip	= csr_swap(CSR_SIP, dom_ctx->sip);
+ 	ctx->satp	= csr_swap(CSR_SATP, dom_ctx->satp);
+ 	if (sbi_hart_priv_version(scratch) >= SBI_HART_PRIV_VER_1_10)
+ 		ctx->scounteren = csr_swap(CSR_SCOUNTEREN, dom_ctx->scounteren);
+diff --git a/lib/sbi/sbi_hsm.c b/lib/sbi/sbi_hsm.c
+index e8128a3941ad..9bebe892667f 100644
+--- a/lib/sbi/sbi_hsm.c
++++ b/lib/sbi/sbi_hsm.c
+@@ -21,6 +21,7 @@
+ #include <sbi/sbi_hsm.h>
+ #include <sbi/sbi_init.h>
+ #include <sbi/sbi_ipi.h>
++#include <sbi/sbi_platform.h>
+ #include <sbi/sbi_scratch.h>
+ #include <sbi/sbi_system.h>
+ #include <sbi/sbi_timer.h>
+@@ -123,7 +124,7 @@ int sbi_hsm_hart_interruptible_mask(const struct sbi_domain *dom,
+ 	int hstate, ret;
+ 	u32 i;
+ 
+-	ret = sbi_domain_get_assigned_hartmask(dom, mask);
++	ret = sbi_domain_get_possible_hartmask(dom, mask);
+ 	if (ret)
+ 		return ret;
+ 
+-- 
+2.43.0
+

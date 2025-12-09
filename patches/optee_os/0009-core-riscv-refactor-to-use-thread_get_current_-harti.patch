@@ -1,0 +1,269 @@
+From bdb111d90e9e17348a60d08f163cc6912ce8e1a2 Mon Sep 17 00:00:00 2001
+From: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Date: Fri, 25 Apr 2025 23:00:28 -0700
+Subject: [RISE 09/10] core: riscv: refactor to use
+ thread_get_current_{hartid,hartindex}
+
+Replace get_core_pos() with more descriptive
+thread_get_current_hartindex() on RISC-V, and
+handle range checks in one place
+(e.g. assert(hartidx < CFG_TEE_CORE_NB_CORE)).
+
+Also, remove thread_get_hartid_by_hartindex()
+as we only need to access local hart information
+now.
+
+Signed-off-by: Yu-Chien Peter Lin <peter.lin@sifive.com>
+---
+ core/arch/riscv/include/kernel/clint.h       |  4 +--
+ core/arch/riscv/include/kernel/thread_arch.h |  3 +-
+ core/arch/riscv/kernel/abort.c               |  4 +--
+ core/arch/riscv/kernel/boot.c                | 29 ++++++++------------
+ core/arch/riscv/kernel/thread_arch.c         | 11 ++++++--
+ core/arch/riscv/mm/core_mmu_arch.c           | 21 +++++++-------
+ 6 files changed, 38 insertions(+), 34 deletions(-)
+
+diff --git a/core/arch/riscv/include/kernel/clint.h b/core/arch/riscv/include/kernel/clint.h
+index 56efa25b5776..698f042cc09a 100644
+--- a/core/arch/riscv/include/kernel/clint.h
++++ b/core/arch/riscv/include/kernel/clint.h
+@@ -35,12 +35,12 @@ static inline void clint_ipi_clear(unsigned long hart)
+ static inline void clint_set_mtimecmp(uint64_t timecmp)
+ {
+ 	/* Each hart has a separate source of timer interrupts */
+-	io_write64(CLINT_MTIMECMP(get_core_pos()), timecmp);
++	io_write64(CLINT_MTIMECMP(thread_get_current_hartid()), timecmp);
+ }
+ 
+ static inline uint64_t clint_get_mtimecmp(void)
+ {
+-	return io_read64(CLINT_MTIMECMP(get_core_pos()));
++	return io_read64(CLINT_MTIMECMP(thread_get_current_hartid()));
+ }
+ 
+ static inline uint64_t clint_get_mtime(void)
+diff --git a/core/arch/riscv/include/kernel/thread_arch.h b/core/arch/riscv/include/kernel/thread_arch.h
+index 9e1c2672862a..a9dab418cd6a 100644
+--- a/core/arch/riscv/include/kernel/thread_arch.h
++++ b/core/arch/riscv/include/kernel/thread_arch.h
+@@ -198,7 +198,8 @@ static inline void thread_user_clear_vfp(struct user_mode_ctx *uctx __unused)
+ #endif
+ 
+ vaddr_t thread_get_saved_thread_sp(void);
+-uint32_t thread_get_hartid_by_hartindex(uint32_t hartidx);
++uint32_t thread_get_current_hartindex(void);
++uint32_t thread_get_current_hartid(void);
+ 
+ static inline void thread_get_user_kcode(struct mobj **mobj, size_t *offset,
+ 					 vaddr_t *va, size_t *sz)
+diff --git a/core/arch/riscv/kernel/abort.c b/core/arch/riscv/kernel/abort.c
+index c49a29305137..07b6c628c953 100644
+--- a/core/arch/riscv/kernel/abort.c
++++ b/core/arch/riscv/kernel/abort.c
+@@ -85,7 +85,7 @@ __print_abort_info(struct abort_info *ai __maybe_unused,
+ 	if (abort_is_user_exception(ai))
+ 		core_pos = thread_get_tsd()->abort_core;
+ 	else
+-		core_pos = get_core_pos();
++		core_pos = thread_get_current_hartindex();
+ 
+ 	EMSG_RAW("");
+ 	EMSG_RAW("%s %s-abort at address 0x%" PRIxVA "%s",
+@@ -193,7 +193,7 @@ static void save_abort_info_in_tsd(struct abort_info *ai)
+ 	tsd->abort_descr = ai->fault_descr;
+ 	tsd->abort_va = ai->va;
+ 	tsd->abort_regs = *ai->regs;
+-	tsd->abort_core = get_core_pos();
++	tsd->abort_core = thread_get_current_hartindex();
+ }
+ 
+ static void set_abort_info(uint32_t abort_type __unused,
+diff --git a/core/arch/riscv/kernel/boot.c b/core/arch/riscv/kernel/boot.c
+index 550e3b27bbb4..3d6cb570ef33 100644
+--- a/core/arch/riscv/kernel/boot.c
++++ b/core/arch/riscv/kernel/boot.c
+@@ -71,19 +71,18 @@ void init_sec_mon(unsigned long nsec_entry __maybe_unused)
+ #ifdef CFG_RISCV_S_MODE
+ static void start_secondary_cores(void)
+ {
+-	uint32_t curr_hartid = thread_get_core_local()->hart_id;
+ 	enum sbi_hsm_hart_state status = 0;
+ 	uint32_t hartid = 0;
+ 	int rc = 0;
+ 	int i = 0;
+ 
+ 	/* The primary CPU is always indexed by 0 */
+-	assert(get_core_pos() == 0);
++	assert(thread_get_current_hartindex() == 0);
+ 
+ 	for (i = 0; i < CFG_TEE_CORE_NB_CORE; i++) {
+ 		hartid = hartids[i];
+ 
+-		if (hartid == curr_hartid)
++		if (hartid == thread_get_current_hartid())
+ 			continue;
+ 
+ 		rc = sbi_hsm_hart_get_status(hartid, &status);
+@@ -213,10 +212,7 @@ void boot_init_primary_early(void)
+ void boot_init_primary_late(unsigned long fdt,
+ 			    unsigned long tos_fw_config __unused)
+ {
+-	size_t pos = get_core_pos();
+-
+-	/* The primary CPU is always indexed by 0 */
+-	assert(pos == 0);
++	uint32_t hartid = thread_get_current_hartid();
+ 
+ 	init_external_dt(fdt, CFG_DTB_MAX_SIZE);
+ 	discover_nsec_memory();
+@@ -230,8 +226,7 @@ void boot_init_primary_late(unsigned long fdt,
+ 		IMSG("WARNING: This OP-TEE configuration might be insecure!");
+ 		IMSG("WARNING: Please check https://optee.readthedocs.io/en/latest/architecture/porting_guidelines.html");
+ 	}
+-	IMSG("Primary CPU0 (hart%"PRIu32") initializing",
+-	     thread_get_hartid_by_hartindex(pos));
++	IMSG("Primary CPU0 (hart%"PRIu32") initializing", hartid);
+ 	boot_primary_init_intc();
+ 	boot_primary_init_core_ids();
+ 	init_tee_runtime();
+@@ -239,14 +234,13 @@ void boot_init_primary_late(unsigned long fdt,
+ 
+ void __weak boot_init_primary_final(void)
+ {
+-	size_t pos = get_core_pos();
++	uint32_t hartid = thread_get_current_hartid();
+ 
+ 	boot_mem_release_tmp_alloc();
+ 
+ 	call_driver_initcalls();
+ 	call_finalcalls();
+-	IMSG("Primary CPU0 (hart%"PRIu32") initialized",
+-	     thread_get_hartid_by_hartindex(pos));
++	IMSG("Primary CPU0 (hart%"PRIu32") initialized", hartid);
+ 
+ #ifdef CFG_RISCV_S_MODE
+ 	start_secondary_cores();
+@@ -255,10 +249,11 @@ void __weak boot_init_primary_final(void)
+ 
+ static void init_secondary_helper(unsigned long nsec_entry)
+ {
+-	size_t pos = get_core_pos();
++	uint32_t hartidx = thread_get_current_hartindex();
++	uint32_t hartid = thread_get_current_hartid();
+ 
+-	IMSG("Secondary CPU%zu (hart%"PRIu32") initializing",
+-	     pos, thread_get_hartid_by_hartindex(pos));
++	IMSG("Secondary CPU%"PRIu32" (hart%"PRIu32") initializing",
++	     hartidx, hartid);
+ 
+ 	/*
+ 	 * Mask asynchronous exceptions before switch to the thread vector
+@@ -276,8 +271,8 @@ static void init_secondary_helper(unsigned long nsec_entry)
+ 	boot_secondary_init_sbi_mpxy();
+ #endif
+ 
+-	IMSG("Secondary CPU%zu (hart%"PRIu32") initialized",
+-	     pos, thread_get_hartid_by_hartindex(pos));
++	IMSG("Secondary CPU%"PRIu32" (hart%"PRIu32") initialized",
++	     hartidx, hartid);
+ }
+ 
+ void boot_init_secondary(unsigned long nsec_entry __unused)
+diff --git a/core/arch/riscv/kernel/thread_arch.c b/core/arch/riscv/kernel/thread_arch.c
+index 11599d3b4a36..e087b99df0ab 100644
+--- a/core/arch/riscv/kernel/thread_arch.c
++++ b/core/arch/riscv/kernel/thread_arch.c
+@@ -326,11 +326,18 @@ vaddr_t thread_get_saved_thread_sp(void)
+ 	return threads[ct].kern_sp;
+ }
+ 
+-uint32_t thread_get_hartid_by_hartindex(uint32_t hartidx)
++uint32_t thread_get_current_hartindex(void)
+ {
++	uint32_t hartidx = get_core_pos();
++
+ 	assert(hartidx < CFG_TEE_CORE_NB_CORE);
+ 
+-	return thread_core_local[hartidx].hart_id;
++	return hartidx;
++}
++
++uint32_t thread_get_current_hartid(void)
++{
++	return thread_get_core_local()->hart_id;
+ }
+ 
+ void thread_resume_from_rpc(uint32_t thread_id, uint32_t a0, uint32_t a1,
+diff --git a/core/arch/riscv/mm/core_mmu_arch.c b/core/arch/riscv/mm/core_mmu_arch.c
+index 32e64293ce15..6c1e7cfbfa0d 100644
+--- a/core/arch/riscv/mm/core_mmu_arch.c
++++ b/core/arch/riscv/mm/core_mmu_arch.c
+@@ -352,6 +352,7 @@ static void core_init_mmu_prtn_tee(struct mmu_partition *prtn,
+ 				   struct memory_map *mem_map)
+ {
+ 	size_t n = 0;
++	uint32_t hartidx = thread_get_current_hartindex();
+ 
+ 	assert(prtn && mem_map);
+ 
+@@ -372,15 +373,14 @@ static void core_init_mmu_prtn_tee(struct mmu_partition *prtn,
+ 		core_mmu_map_region(prtn, mem_map->map + n);
+ 
+ 	/*
+-	 * Primary mapping table is ready at index `get_core_pos()`
+-	 * whose value may not be ZERO. Take this index as copy source.
++	 * Primary mapping table is ready on current hart.
++	 * Take this index as copy source.
+ 	 */
+-	for (n = 0; n < CFG_TEE_CORE_NB_CORE; n++) {
+-		if (n == get_core_pos())
+-			continue;
++	assert(hartidx == 0);
+ 
++	for (n = 1; n < CFG_TEE_CORE_NB_CORE; n++) {
+ 		memcpy(core_mmu_get_root_pgt_va(prtn, n),
+-		       core_mmu_get_root_pgt_va(prtn, get_core_pos()),
++		       core_mmu_get_root_pgt_va(prtn, hartidx),
+ 		       RISCV_MMU_PGT_SIZE);
+ 	}
+ }
+@@ -538,7 +538,7 @@ bool arch_va2pa_helper(void *va, paddr_t *pa)
+ 
+ 	assert(pa);
+ 
+-	pgt = core_mmu_get_root_pgt_va(prtn, get_core_pos());
++	pgt = core_mmu_get_root_pgt_va(prtn, thread_get_current_hartindex());
+ 
+ 	for (level = CORE_MMU_BASE_TABLE_LEVEL; level >= 0; level--) {
+ 		idx = core_mmu_pgt_idx(vaddr, level);
+@@ -585,7 +585,7 @@ bool core_mmu_find_table(struct mmu_partition *prtn, vaddr_t va,
+ 	if (!prtn)
+ 		prtn = core_mmu_get_prtn();
+ 
+-	pgt = core_mmu_get_root_pgt_va(prtn, get_core_pos());
++	pgt = core_mmu_get_root_pgt_va(prtn, thread_get_current_hartindex());
+ 
+ 	while (true) {
+ 		idx = core_mmu_pgt_idx(va - va_base, level);
+@@ -687,7 +687,7 @@ static void set_user_va_idx(struct mmu_partition *prtn)
+ 	struct mmu_pte *pte = NULL;
+ 	unsigned int idx = 0;
+ 
+-	pgt = core_mmu_get_root_pgt_va(prtn, get_core_pos());
++	pgt = core_mmu_get_root_pgt_va(prtn, thread_get_current_hartindex());
+ 
+ 	for (idx = 1 ; idx < RISCV_PTES_PER_PT; idx++) {
+ 		pte = core_mmu_table_get_entry(pgt, idx);
+@@ -703,7 +703,8 @@ static void set_user_va_idx(struct mmu_partition *prtn)
+ static struct mmu_pte *
+ core_mmu_get_user_mapping_entry(struct mmu_partition *prtn)
+ {
+-	struct mmu_pgt *pgt = core_mmu_get_root_pgt_va(prtn, get_core_pos());
++	uint32_t hartidx = thread_get_current_hartindex();
++	struct mmu_pgt *pgt = core_mmu_get_root_pgt_va(prtn, hartidx);
+ 
+ 	assert(core_mmu_user_va_range_is_defined());
+ 
+-- 
+2.43.0
+

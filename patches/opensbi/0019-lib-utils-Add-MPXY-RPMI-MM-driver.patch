@@ -1,0 +1,362 @@
+From a940df20e3b1b3425e21b26fe4b82500a63514bd Mon Sep 17 00:00:00 2001
+From: Alvin Chang <alvinga@andestech.com>
+Date: Sun, 23 Feb 2025 23:53:41 +0800
+Subject: [OPTEE 19/20] lib: utils: Add MPXY RPMI MM driver
+
+Implement MPXY RPMI MM driver which communicates with other system
+domain, such as trusted domain. The MM_COMMUNICATE sends message to
+target domain by MPXY RPMI Request Forward interface so that target
+domain can retrieve the message later.
+
+Co-developed-by: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Signed-off-by: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Signed-off-by: Alvin Chang <alvinga@andestech.com>
+---
+ include/sbi_utils/mailbox/rpmi_msgprot.h |  39 ++++
+ lib/utils/mpxy/Kconfig                   |   4 +
+ lib/utils/mpxy/fdt_mpxy_mm.c             | 236 +++++++++++++++++++++++
+ lib/utils/mpxy/objects.mk                |   3 +
+ platform/generic/configs/defconfig       |   1 +
+ 5 files changed, 283 insertions(+)
+ create mode 100644 lib/utils/mpxy/fdt_mpxy_mm.c
+
+diff --git a/include/sbi_utils/mailbox/rpmi_msgprot.h b/include/sbi_utils/mailbox/rpmi_msgprot.h
+index f29a12328cae..87fa261a915b 100644
+--- a/include/sbi_utils/mailbox/rpmi_msgprot.h
++++ b/include/sbi_utils/mailbox/rpmi_msgprot.h
+@@ -215,6 +215,7 @@ enum rpmi_servicegroup_id {
+ 	RPMI_SRVGRP_HSM = 0x0005,
+ 	RPMI_SRVGRP_CPPC = 0x0006,
+ 	RPMI_SRVGRP_CLOCK = 0x0008,
++	RPMI_SRVGRP_MM = 0x000B,
+ 	RPMI_SRVGRP_REQFWD = 0x000D,
+ 	RPMI_SRVGRP_ID_MAX_COUNT,
+ 
+@@ -702,6 +703,44 @@ struct rpmi_clock_get_rate_resp {
+ 	u32 clock_rate_high;
+ };
+ 
++/** RPMI MM ServiceGroup Service IDs */
++enum rpmi_mm_service_id {
++	RPMI_MM_SRV_ENABLE_NOTIFICATION = 0x01,
++	RPMI_MM_SRV_GET_ATTRIBUTES = 0x02,
++	RPMI_MM_SRV_COMMUNICATE = 0x03,
++	RPMI_MM_SRV_MAX_COUNT,
++};
++
++struct rpmi_mm_enable_notification_req {
++	u32 event_id;
++	u32 req_state;
++};
++
++struct rpmi_mm_enable_notification_resp {
++	s32 status;
++	u32 current_state;
++};
++
++struct rpmi_mm_get_attributes_resp {
++	s32 status;
++	u32 mm_version;
++	u32 mm_shmem_addr_low;
++	u32 mm_shmem_addr_high;
++	u32 mm_shmem_size;
++};
++
++struct rpmi_mm_communicate_req {
++	u32 mm_comm_input_data_offset;
++	u32 mm_comm_input_data_size;
++	u32 mm_comm_output_data_offset;
++	u32 mm_comm_output_data_size;
++};
++
++struct rpmi_mm_communicate_resp {
++	s32 status;
++	u32 mm_comm_return_data_size;
++};
++
+ /** RPMI Request Forward ServiceGroup Service IDs */
+ enum rpmi_reqfwd_service_id {
+ 	RPMI_REQFWD_SRV_ENABLE_NOTIFICATION = 0x01,
+diff --git a/lib/utils/mpxy/Kconfig b/lib/utils/mpxy/Kconfig
+index 51acbfde33b4..aacebef9b1d6 100644
+--- a/lib/utils/mpxy/Kconfig
++++ b/lib/utils/mpxy/Kconfig
+@@ -12,6 +12,10 @@ config FDT_MPXY_RPMI_MBOX
+ 	depends on FDT_MAILBOX && FDT_MPXY
+ 	default n
+ 
++config FDT_MPXY_MM
++	bool "MPXY driver for RPMI MM service group"
++	default n
++
+ config FDT_MPXY_REQFWD
+ 	bool "MPXY driver for RPMI Request Forward service group"
+ 	default n
+diff --git a/lib/utils/mpxy/fdt_mpxy_mm.c b/lib/utils/mpxy/fdt_mpxy_mm.c
+new file mode 100644
+index 000000000000..a8d8e4a0cf45
+--- /dev/null
++++ b/lib/utils/mpxy/fdt_mpxy_mm.c
+@@ -0,0 +1,236 @@
++/*
++ * SPDX-License-Identifier: BSD-2-Clause
++ *
++ * Copyright (c) 2025 Andes Technology Corporation. All rights reserved.
++ */
++
++#include <sbi/sbi_error.h>
++#include <sbi/sbi_heap.h>
++#include <sbi/sbi_fifo.h>
++#include <sbi/sbi_mpxy.h>
++#include <libfdt.h>
++#include <sbi_utils/fdt/fdt_helper.h>
++#include <sbi_utils/mpxy/fdt_mpxy.h>
++#include <sbi_utils/mpxy/fdt_mpxy_rpmi_mbox.h>
++#include <sbi/sbi_domain.h>
++#include <sbi/sbi_console.h>
++
++/**
++ * MPXY MM instance per MPXY channel.
++ */
++struct mpxy_mm {
++	struct mpxy_rpmi_channel_attrs msgprot_attrs;
++	struct sbi_mpxy_channel channel;
++
++	/* Owner Hart ID of this channel */
++	u32 hartid;
++	/* Corresponding Reqfwd channel id */
++	u32 reqfwd_channel_id;
++
++	/* TEE domain */
++	char mm_domain_name[64];
++	struct sbi_domain *mm_domain;
++};
++
++/*
++ * Setup target domain of this MM channel.
++ * If the target domain has not been registered, the domain will be setup in
++ * mm_domain_setup_deferred() when MM channel is used.
++ */
++static int mm_domain_setup(const void *fdt, int nodeoff,
++			   const struct fdt_match *match,
++			   struct mpxy_mm *mm)
++{
++	struct sbi_domain *dom = NULL;
++	const u32 *prop_instance;
++	int len, offset;
++
++	prop_instance = fdt_getprop(fdt, nodeoff, "opensbi-domain-instance",
++				    &len);
++	if (!prop_instance || len < 4)
++		return SBI_EINVAL;
++
++	offset = fdt_node_offset_by_phandle(fdt, fdt32_to_cpu(*prop_instance));
++	if (offset < 0)
++		return SBI_EINVAL;
++
++	strncpy(mm->mm_domain_name, fdt_get_name(fdt, offset, NULL),
++		sizeof(mm->mm_domain_name));
++	mm->mm_domain_name[sizeof(mm->mm_domain_name) - 1] = '\0';
++
++	sbi_domain_for_each(dom) {
++		if (!sbi_strcmp(dom->name, mm->mm_domain_name)) {
++			mm->mm_domain = dom;
++			break;
++		}
++	}
++
++	return SBI_OK;
++}
++
++/* Setup target domain of this MM channel */
++static int mm_domain_setup_deferred(struct mpxy_mm *mm)
++{
++	struct sbi_domain *dom = NULL;
++
++	if (mm->mm_domain)
++		 return SBI_OK;
++
++	sbi_domain_for_each(dom) {
++		if (!sbi_strcmp(dom->name, mm->mm_domain_name)) {
++			mm->mm_domain = dom;
++			return SBI_OK;
++		}
++	}
++
++	return SBI_ENOENT;
++}
++
++/* Switch to target domain of this MM channel */
++static int mm_domain_enter(struct mpxy_mm *mm)
++{
++	int rc;
++
++	/* Try to setup MM domain if it has not been set */
++	rc = mm_domain_setup_deferred(mm);
++	if (rc)
++		return rc;
++
++	return sbi_domain_context_enter(mm->mm_domain);
++}
++
++/** Copy attributes word size */
++static void mpxy_copy_attrs(u32 *outmem, u32 *inmem, u32 count)
++{
++	u32 idx;
++	for (idx = 0; idx < count; idx++)
++		outmem[idx] = cpu_to_le32(inmem[idx]);
++}
++
++static int mpxy_mm_read_attributes(struct sbi_mpxy_channel *channel,
++				   u32 *outmem, u32 base_attr_id,
++				   u32 attr_count)
++{
++	struct mpxy_mm *mm = container_of(channel, struct mpxy_mm, channel);
++	u32 *attr_array = (u32 *)&mm->msgprot_attrs;
++	u32 end_id = base_attr_id + attr_count - 1;
++
++	if (end_id >= MPXY_MSGPROT_RPMI_ATTR_MAX_ID)
++		return SBI_EBAD_RANGE;
++
++	mpxy_copy_attrs(outmem, &attr_array[attr_id2index(base_attr_id)],
++			attr_count);
++
++	return SBI_OK;
++}
++
++static int mpxy_mm_send_message_withresp(struct sbi_mpxy_channel *channel,
++					 u32 message_id,
++					 void *tx, u32 tx_len,
++					 void *rx, u32 rx_max_len,
++					 unsigned long *ack_len)
++{
++	struct mpxy_mm *mm = container_of(channel, struct mpxy_mm, channel);
++	struct sbi_mpxy_channel *recv_channel;
++	struct rpmi_message_header header;
++	u32 recv_channel_id = mm->reqfwd_channel_id;
++	int rc;
++
++	if (RPMI_MM_SRV_COMMUNICATE == message_id) {
++		recv_channel = sbi_mpxy_find_channel(recv_channel_id);
++		if (!recv_channel)
++			return SBI_ENODEV;
++
++		/* Prepare the header to be written into the slot */
++		header.servicegroup_id = cpu_to_le16(RPMI_SRVGRP_MM);
++		header.service_id = message_id;
++		header.flags = RPMI_MSG_NORMAL_REQUEST;
++		header.datalen = cpu_to_le16((u16)tx_len);
++		header.token = cpu_to_le16(0);
++		/* Forward message to MPXT ReqFwd channel */
++		rc = mpxy_reqfwd_forward_message(recv_channel, &header,
++						 tx, tx_len, rx, rx_max_len,
++						 ack_len);
++		if (rc)
++			return rc;
++
++		/* Enter MM domain */
++		rc = mm_domain_enter(mm);
++		if (rc)
++			return rc;
++	} else {
++		return SBI_EFAIL;
++	}
++
++	return SBI_OK;
++}
++
++static int mpxy_mm_init(const void *fdt, int nodeoff,
++			const struct fdt_match *match)
++{
++	struct mpxy_mm *mm;
++	const fdt32_t *val;
++	u32 channel_id, reqfwd_channel_id, hartid;
++	int rc, len;
++
++	/* Allocate context for Request Forward */
++	mm = sbi_zalloc(sizeof(*mm));
++	if (!mm)
++		return SBI_ENOMEM;
++
++	val = fdt_getprop(fdt, nodeoff, "riscv,sbi-mpxy-channel-id", &len);
++	if (len > 0 && val)
++		channel_id = fdt32_to_cpu(*val);
++	else
++		sbi_panic("Failed to get riscv,sbi-mpxy-channel-id");
++
++	val = fdt_getprop(fdt, nodeoff, "test,owner-hart", &len);
++	if (len > 0 && val)
++		hartid = fdt32_to_cpu(*val);
++	else
++		sbi_panic("Failed to get test,owner-hart");
++
++	val = fdt_getprop(fdt, nodeoff, "test,reqfwd-channel-id", &len);
++	if (len > 0 && val)
++		reqfwd_channel_id = fdt32_to_cpu(*val);
++	else
++		sbi_panic("Failed to get test,reqfwd-channel-id");
++
++	mm->hartid = hartid;
++	mm->reqfwd_channel_id = reqfwd_channel_id;
++	mm->channel.channel_id = channel_id;
++	mm->channel.read_attributes = mpxy_mm_read_attributes;
++	mm->channel.send_message_with_response = mpxy_mm_send_message_withresp;
++	mm->channel.attrs.msg_proto_id = SBI_MPXY_MSGPROTO_RPMI_ID;
++	mm->channel.attrs.msg_data_maxlen = PAGE_SIZE;
++
++	/* RPMI service group attributes */
++	mm->msgprot_attrs.servicegrp_id = RPMI_SRVGRP_MM;
++	mm->msgprot_attrs.servicegrp_ver = 1;
++
++	rc = sbi_mpxy_register_channel(&mm->channel);
++	if (rc)
++		goto fail_free_mm;
++
++	/* Try to setup MM domain */
++	rc = mm_domain_setup(fdt, nodeoff, match, mm);
++	if (rc)
++		goto fail_free_mm;
++
++	return SBI_SUCCESS;
++
++fail_free_mm:
++	sbi_free(mm);
++	return rc;
++}
++
++static const struct fdt_match mpxy_mm_match[] = {
++	{ .compatible = "riscv,sbi-mpxy-mm", .data = NULL },
++	{},
++};
++
++const struct fdt_driver fdt_mpxy_mm = {
++	.match_table = mpxy_mm_match,
++	.init = mpxy_mm_init,
++	.experimental = true,
++};
+diff --git a/lib/utils/mpxy/objects.mk b/lib/utils/mpxy/objects.mk
+index 36e013b14fb1..30e213d1c073 100644
+--- a/lib/utils/mpxy/objects.mk
++++ b/lib/utils/mpxy/objects.mk
+@@ -18,5 +18,8 @@ libsbiutils-objs-$(CONFIG_FDT_MPXY_RPMI_CLOCK) += mpxy/fdt_mpxy_rpmi_clock.o
+ carray-fdt_mpxy_drivers-$(CONFIG_FDT_MPXY_RPMI_SYSMSI) += fdt_mpxy_rpmi_sysmsi
+ libsbiutils-objs-$(CONFIG_FDT_MPXY_RPMI_SYSMSI) += mpxy/fdt_mpxy_rpmi_sysmsi.o
+ 
++carray-fdt_mpxy_drivers-$(CONFIG_FDT_MPXY_MM) += fdt_mpxy_mm
++libsbiutils-objs-$(CONFIG_FDT_MPXY_MM) += mpxy/fdt_mpxy_mm.o
++
+ carray-fdt_mpxy_drivers-$(CONFIG_FDT_MPXY_REQFWD) += fdt_mpxy_reqfwd
+ libsbiutils-objs-$(CONFIG_FDT_MPXY_REQFWD) += mpxy/fdt_mpxy_reqfwd.o
+diff --git a/platform/generic/configs/defconfig b/platform/generic/configs/defconfig
+index 882bd4a2038d..1d721c4fe883 100644
+--- a/platform/generic/configs/defconfig
++++ b/platform/generic/configs/defconfig
+@@ -57,4 +57,5 @@ CONFIG_FDT_MPXY=y
+ CONFIG_FDT_MPXY_RPMI_MBOX=y
+ CONFIG_FDT_MPXY_RPMI_CLOCK=y
+ CONFIG_FDT_MPXY_RPMI_SYSMSI=y
++CONFIG_FDT_MPXY_MM=y
+ CONFIG_FDT_MPXY_REQFWD=y
+-- 
+2.43.0
+

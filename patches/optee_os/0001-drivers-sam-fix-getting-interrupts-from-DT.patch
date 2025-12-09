@@ -1,0 +1,33 @@
+From ffb3f5fa7e59c3de4a6d45ec74ac582be18a9dcb Mon Sep 17 00:00:00 2001
+From: Tony Han <tony.han@microchip.com>
+Date: Mon, 14 Apr 2025 13:05:00 +0800
+Subject: [RISE 01/10] drivers: sam: fix getting interrupts from DT
+
+The issue is found on sama5d2 platform.
+Get interrupt fails due to the change of function parameter (from
+count by bytes to count by words), fixed by making corresponding
+changes to the function called later.
+
+Fixes: 63873401cb04 ("core: interrupt: fix property count in dt_get_irq_type_prio()")
+Signed-off-by: Tony Han <tony.han@microchip.com>
+Acked-by: Jerome Forissier <jerome.forissier@linaro.org>
+---
+ core/drivers/atmel_saic.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/core/drivers/atmel_saic.c b/core/drivers/atmel_saic.c
+index 808e3ae291d8..ec50abff98de 100644
+--- a/core/drivers/atmel_saic.c
++++ b/core/drivers/atmel_saic.c
+@@ -146,8 +146,6 @@ static int saic_dt_get_irq(const uint32_t *properties, int len,
+ 	uint32_t priority = 0;
+ 	uint32_t irq_type = 0;
+ 
+-	len /= sizeof(uint32_t);
+-
+ 	if (len != 3)
+ 		return DT_INFO_INVALID_INTERRUPT;
+ 
+-- 
+2.43.0
+

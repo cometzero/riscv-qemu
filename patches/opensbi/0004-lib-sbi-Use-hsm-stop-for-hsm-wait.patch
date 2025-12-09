@@ -1,0 +1,53 @@
+From d844deadec94201abd9370cecb065812411d1950 Mon Sep 17 00:00:00 2001
+From: Nick Hu <nick.hu@sifive.com>
+Date: Fri, 18 Apr 2025 14:45:06 +0800
+Subject: [OPTEE 04/20] lib: sbi: Use hsm stop for hsm wait
+
+If we hotplug a core and then perform a suspend-to-RAM operation on a
+multi-core platform, the hotplugged CPU may be woken up along with the rest
+of the system, particularly on platforms that wake all cores from the
+deepest sleep state. When this happens, the hotplugged CPU enters the
+sbi_hsm_wait WFI wait loop instead of transitioning into a
+platform-specific low-power state. To address this, we add a HSM stop call
+within the wait loop. This allows platforms that support HSM stop to enter
+a low-power state when the CPU is unexpectedly woken up.
+
+Signed-off-by: Nick Hu <nick.hu@sifive.com>
+Reviewed-by: Samuel Holland <samuel.holland@sifive.com>
+Reviewed-by: Anup Patel <anup@brainfault.org>
+Link: https://lore.kernel.org/r/20250418064506.15771-1-nick.hu@sifive.com
+Signed-off-by: Anup Patel <anup@brainfault.org>
+---
+ lib/sbi/sbi_hsm.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/lib/sbi/sbi_hsm.c b/lib/sbi/sbi_hsm.c
+index dfe8408ddede..e8128a3941ad 100644
+--- a/lib/sbi/sbi_hsm.c
++++ b/lib/sbi/sbi_hsm.c
+@@ -37,6 +37,8 @@
+ 
+ static const struct sbi_hsm_device *hsm_dev = NULL;
+ static unsigned long hart_data_offset;
++static bool hsm_device_has_hart_hotplug(void);
++static int hsm_device_hart_stop(void);
+ 
+ /** Per hart specific data to manage state transition **/
+ struct sbi_hsm_data {
+@@ -170,6 +172,13 @@ static void sbi_hsm_hart_wait(struct sbi_scratch *scratch)
+ 
+ 	/* Wait for state transition requested by sbi_hsm_hart_start() */
+ 	while (atomic_read(&hdata->state) != SBI_HSM_STATE_START_PENDING) {
++		/*
++		 * If the hsm_dev is ready and it support the hotplug, we can
++		 * use the hsm stop for more power saving
++		 */
++		if (hsm_device_has_hart_hotplug())
++			hsm_device_hart_stop();
++
+ 		wfi();
+ 	}
+ 
+-- 
+2.43.0
+

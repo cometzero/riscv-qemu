@@ -1,0 +1,17 @@
+# Linux kernel config fragment for OP-TEE TEE driver
+# Enable this with: scripts/kconfig/merge_config.sh .config this_file
+
+# TEE subsystem
+CONFIG_TEE=y
+
+# OP-TEE driver
+CONFIG_OPTEE=y
+
+# Shared memory pages for OP-TEE
+CONFIG_OPTEE_SHM_NUM_PRIV_PAGES=1
+
+# Mailbox support for RISC-V MPXY
+CONFIG_MAILBOX=y
+
+# Debug options
+CONFIG_TEE_VERBOSE_DEBUG=y

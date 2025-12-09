@@ -1,0 +1,30 @@
+From bdb7da5f92e5c65a0655deb8b27858018cfadbf7 Mon Sep 17 00:00:00 2001
+From: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Date: Fri, 3 Jan 2025 23:09:09 -0800
+Subject: [RISE 01/10] sifive_unleashed_defconfig: Enable OP-TEE related
+ configs
+
+---
+ configs/sifive_unleashed_defconfig | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/configs/sifive_unleashed_defconfig b/configs/sifive_unleashed_defconfig
+index 96b6f482c4fe..12a17d6d4513 100644
+--- a/configs/sifive_unleashed_defconfig
++++ b/configs/sifive_unleashed_defconfig
+@@ -36,7 +36,12 @@ CONFIG_SPL_SYS_MALLOC=y
+ CONFIG_SPL_DM_SPI_FLASH=y
+ CONFIG_SPL_DM_RESET=y
+ CONFIG_SPL_SPI_LOAD=y
++CONFIG_SPL_OPTEE_LOAD_ADDR=0xf1000000
+ CONFIG_SYS_RELOC_GD_ENV_ADDR=y
+ CONFIG_SPL_DM_SEQ_ALIAS=y
+ CONFIG_SPL_CLK=y
+ CONFIG_DM_MTD=y
++CONFIG_TEE=y
++CONFIG_OPTEE=y
++# CONFIG_CHIMP_OPTEE is not set
++# CONFIG_OPTEE_LIB is not set
+-- 
+2.43.0
+

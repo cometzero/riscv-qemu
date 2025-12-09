@@ -1,0 +1,492 @@
+From 9e448ff0943a4e3f1b4e18f319c8c4deffc358d0 Mon Sep 17 00:00:00 2001
+From: Alvin Chang <alvinga@andestech.com>
+Date: Sun, 23 Feb 2025 21:06:26 +0800
+Subject: [RISE 08/10] core: riscv: Use SBI MPXY extension for domain
+ communication
+
+This commit implements necessary infrastructure to use SBI MPXY
+extension in OP-TEE OS, including MPXY channel probing, per-hart MPXY
+shared memory registration, MPXY message sending and receiving, etc. The
+implementation is based on new introduced RPMI Request Forward service
+group.
+
+Signed-off-by: Alvin Chang <alvinga@andestech.com>
+---
+ core/arch/riscv/include/sbi.h                |  63 +++-
+ core/arch/riscv/kernel/boot.c                |   6 +
+ core/arch/riscv/kernel/sbi_mpxy.c            | 315 +++++++++++++++++++
+ core/arch/riscv/kernel/sub.mk                |   1 +
+ core/arch/riscv/kernel/thread_optee_abi_rv.S |   4 +-
+ 5 files changed, 385 insertions(+), 4 deletions(-)
+ create mode 100644 core/arch/riscv/kernel/sbi_mpxy.c
+
+diff --git a/core/arch/riscv/include/sbi.h b/core/arch/riscv/include/sbi.h
+index f6e503514044..6efd4c86789a 100644
+--- a/core/arch/riscv/include/sbi.h
++++ b/core/arch/riscv/include/sbi.h
+@@ -24,7 +24,7 @@
+ #define SBI_EXT_BASE			0x10
+ #define SBI_EXT_HSM			0x48534D
+ #define SBI_EXT_DBCN			0x4442434E
+-#define SBI_EXT_TEE			0x544545
++#define SBI_EXT_MPXY			0x4D505859
+ 
+ #ifndef __ASSEMBLER__
+ 
+@@ -51,6 +51,18 @@ struct sbiret {
+ 
+ #define sbi_ecall(...)	_sbi_ecall(__VA_ARGS__, 0, 0, 0, 0, 0, 0, 0)
+ 
++/* SBI arguments */
++struct sbi_args {
++	unsigned long a0;
++	unsigned long a1;
++	unsigned long a2;
++	unsigned long a3;
++	unsigned long a4;
++	unsigned long a5;
++	unsigned long a6;
++	unsigned long a7;
++};
++
+ /* SBI function IDs for Base extension */
+ enum sbi_ext_base_fid {
+ 	SBI_EXT_BASE_GET_SPEC_VERSION = 0,
+@@ -87,6 +99,47 @@ enum sbi_hsm_hart_state {
+ 	SBI_HSM_STATE_RESUME_PENDING,
+ };
+ 
++enum sbi_ext_mpxy_fid {
++	SBI_EXT_MPXY_GET_SHMEM_SIZE,
++	SBI_EXT_MPXY_SET_SHMEM,
++	SBI_EXT_MPXY_GET_CHANNEL_IDS,
++	SBI_EXT_MPXY_READ_ATTRS,
++	SBI_EXT_MPXY_WRITE_ATTRS,
++	SBI_EXT_MPXY_SEND_MSG_WITH_RESP,
++	SBI_EXT_MPXY_SEND_MSG_WITHOUT_RESP,
++	SBI_EXT_MPXY_GET_NOTIFICATION_EVENTS,
++};
++
++enum sbi_mpxy_attribute_id {
++	/* Standard channel attributes managed by MPXY framework */
++	SBI_MPXY_ATTR_MSG_PROT_ID		= 0x00000000,
++	SBI_MPXY_ATTR_MSG_PROT_VER		= 0x00000001,
++	SBI_MPXY_ATTR_MSG_MAX_LEN		= 0x00000002,
++	SBI_MPXY_ATTR_MSG_SEND_TIMEOUT		= 0x00000003,
++	SBI_MPXY_ATTR_MSG_COMPLETION_TIMEOUT	= 0x00000004,
++	SBI_MPXY_ATTR_CHANNEL_CAPABILITY	= 0x00000005,
++	SBI_MPXY_ATTR_SSE_EVENT_ID		= 0x00000006,
++	SBI_MPXY_ATTR_MSI_CONTROL		= 0x00000007,
++	SBI_MPXY_ATTR_MSI_ADDR_LO		= 0x00000008,
++	SBI_MPXY_ATTR_MSI_ADDR_HI		= 0x00000009,
++	SBI_MPXY_ATTR_MSI_DATA			= 0x0000000A,
++	SBI_MPXY_ATTR_EVENTS_STATE_CONTROL	= 0x0000000B,
++	SBI_MPXY_ATTR_STD_ATTR_MAX_IDX,
++	/*
++	 * Message protocol specific attributes, managed by
++	 * the message protocol specification.
++	 */
++	SBI_MPXY_ATTR_MSGPROTO_ATTR_START	= 0x80000000,
++	SBI_MPXY_ATTR_MSGPROTO_ATTR_END		= 0xffffffff
++};
++
++/**
++ * SBI MPXY Message Protocol IDs
++ */
++enum sbi_mpxy_msgproto_id {
++	SBI_MPXY_MSGPROTO_RPMI_ID = 0x0,
++};
++
+ #include <compiler.h>
+ #include <encoding.h>
+ #include <stdint.h>
+@@ -99,6 +152,14 @@ void sbi_console_putchar(int ch);
+ int sbi_dbcn_write_byte(unsigned char ch);
+ int sbi_hsm_hart_start(uint32_t hartid, paddr_t start_addr, unsigned long arg);
+ int sbi_hsm_hart_get_status(uint32_t hartid, enum sbi_hsm_hart_state *status);
++void thread_return_to_udomain_by_sbi_mpxy(unsigned long arg0,
++					  unsigned long arg1,
++					  unsigned long arg2,
++					  unsigned long arg3,
++					  unsigned long arg4,
++					  unsigned long arg5 __unused);
++void boot_primary_init_sbi_mpxy(void);
++void boot_secondary_init_sbi_mpxy(void);
+ 
+ #endif /*__ASSEMBLER__*/
+ #endif /*defined(CFG_RISCV_SBI)*/
+diff --git a/core/arch/riscv/kernel/boot.c b/core/arch/riscv/kernel/boot.c
+index 9ccbd842ecf1..550e3b27bbb4 100644
+--- a/core/arch/riscv/kernel/boot.c
++++ b/core/arch/riscv/kernel/boot.c
+@@ -221,6 +221,9 @@ void boot_init_primary_late(unsigned long fdt,
+ 	init_external_dt(fdt, CFG_DTB_MAX_SIZE);
+ 	discover_nsec_memory();
+ 	update_external_dt();
++#ifdef CFG_RISCV_S_MODE
++	boot_primary_init_sbi_mpxy();
++#endif
+ 
+ 	IMSG("OP-TEE version: %s", core_v_str);
+ 	if (IS_ENABLED(CFG_INSECURE)) {
+@@ -269,6 +272,9 @@ static void init_secondary_helper(unsigned long nsec_entry)
+ 	thread_init_per_cpu();
+ 	init_sec_mon(nsec_entry);
+ 	boot_secondary_init_intc();
++#ifdef CFG_RISCV_S_MODE
++	boot_secondary_init_sbi_mpxy();
++#endif
+ 
+ 	IMSG("Secondary CPU%zu (hart%"PRIu32") initialized",
+ 	     pos, thread_get_hartid_by_hartindex(pos));
+diff --git a/core/arch/riscv/kernel/sbi_mpxy.c b/core/arch/riscv/kernel/sbi_mpxy.c
+new file mode 100644
+index 000000000000..fc81ac4e0089
+--- /dev/null
++++ b/core/arch/riscv/kernel/sbi_mpxy.c
+@@ -0,0 +1,315 @@
++// SPDX-License-Identifier: BSD-2-Clause
++/*
++ * Copyright (c) 2024-2025 Andes Technology Corporation
++ */
++
++#include <io.h>
++#include <kernel/dt.h>
++#include <kernel/misc.h>
++#include <kernel/panic.h>
++#include <kernel/thread_arch.h>
++#include <kernel/thread_private.h>
++#include <libfdt.h>
++#include <mm/core_memprot.h>
++#include <mm/core_mmu.h>
++#include <riscv.h>
++#include <rpmi_msgprot.h>
++#include <sbi.h>
++#include <string.h>
++#include <tee/optee_abi.h>
++#include <tee/teeabi_opteed.h>
++#include <tee/teeabi_opteed_macros.h>
++#include <types_ext.h>
++#include <util.h>
++
++#define ABI_ENTRY_TYPE_FAST		1
++#define ABI_ENTRY_TYPE_YIELD		0
++#define FUNCID_TYPE_SHIFT		31
++#define FUNCID_TYPE_MASK		0x1
++#define GET_ABI_ENTRY_TYPE(id)		(((id) >> FUNCID_TYPE_SHIFT) & \
++					 FUNCID_TYPE_MASK)
++
++struct sbi_mpxy {
++	struct io_pa_va shmem_base;
++	uint32_t channel_id;
++	bool active;
++};
++
++static struct sbi_mpxy sbi_mpxy_hart_data[CFG_TEE_CORE_NB_CORE];
++
++static int sbi_mpxy_setup_shmem(unsigned int hartid)
++{
++	struct sbi_mpxy *mpxy = &sbi_mpxy_hart_data[hartid];
++	struct sbiret ret;
++	void *shmem;
++
++	if (mpxy->active)
++		return SBI_ERR_FAILURE;
++
++	/* Allocate 4 KiB memory aligend with 4 KiB (required by SBI MPXY). */
++	shmem = memalign(SMALL_PAGE_SIZE, SMALL_PAGE_SIZE);
++	if (!shmem) {
++		EMSG("Allocate MPXY shared memory fail");
++		return SBI_ERR_FAILURE;
++	}
++
++	mpxy->shmem_base.va = (vaddr_t)shmem;
++	mpxy->shmem_base.pa = virt_to_phys(shmem);
++
++	ret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_SET_SHMEM,
++			mpxy->shmem_base.pa, 0, 0);
++	if (ret.error) {
++		EMSG("Setup MPXY shared memory for hart%d error %ld",
++		     hartid, ret.error);
++		return SBI_ERR_FAILURE;
++	}
++
++	mpxy->active = true;
++
++	EMSG("Setup MPXY shared memory for hart%d OK, PA: 0x%lX, VA: 0x%lX\n",
++	     hartid, mpxy->shmem_base.pa, mpxy->shmem_base.va);
++
++	return SBI_SUCCESS;
++}
++
++static int sbi_mpxy_read_attributes(uint32_t channel_id,
++				    uint32_t base_attribute_id,
++				    uint32_t attribute_count,
++				    void *attribute_buf)
++{
++	struct sbi_mpxy *mpxy;
++	struct sbiret ret;
++	uint32_t exceptions;
++
++	if (!attribute_count || !attribute_buf)
++		return SBI_ERR_INVALID_PARAM;
++
++	exceptions = thread_mask_exceptions(THREAD_EXCP_ALL);
++
++	mpxy = &sbi_mpxy_hart_data[get_core_pos()];
++	ret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_READ_ATTRS,
++			channel_id, base_attribute_id, attribute_count,
++			0, 0, 0);
++	if (!ret.error) {
++		memcpy(attribute_buf, (void *)mpxy->shmem_base.va,
++		       attribute_count * sizeof(uint32_t));
++	}
++
++	thread_unmask_exceptions(exceptions);
++	return ret.error;
++}
++
++/* Called with all exception being masked */
++static int sbi_mpxy_send_message_withresp(struct sbi_mpxy *mpxy,
++					  uint32_t channel_id,
++					  uint32_t message_id,
++					  void *tx, uint32_t tx_len,
++					  void *rx, uint32_t rx_max_len,
++					  uint32_t *ack_len)
++{
++	struct sbiret ret;
++
++	assert((thread_get_exceptions() & THREAD_EXCP_ALL) == THREAD_EXCP_ALL);
++
++	if (tx_len)
++		memcpy((void *)mpxy->shmem_base.va, tx, tx_len);
++
++	ret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_SEND_MSG_WITH_RESP,
++			channel_id, message_id, tx_len);
++
++	if (!ret.error && rx && ret.value < rx_max_len) {
++		memcpy(rx, (void *)mpxy->shmem_base.va, ret.value);
++		if (ack_len)
++			*ack_len = ret.value;
++	}
++
++	return ret.error;
++}
++
++/* Called with all exception being masked */
++static void
++thread_sbi_mpxy_reqfwd_retrieve_message(struct thread_abi_args *args)
++{
++	struct rpmi_reqfwd_retrieve_current_message_req req;
++	struct rpmi_reqfwd_retrieve_current_message_resp resp;
++	struct sbi_mpxy *mpxy;
++	uint32_t ack_len;
++	int rc;
++
++	mpxy = &sbi_mpxy_hart_data[get_core_pos()];
++
++	req.start_index = 0;
++	rc = sbi_mpxy_send_message_withresp(
++			mpxy, mpxy->channel_id,
++			RPMI_REQFWD_SRV_RETRIEVE_CURRENT_MESSAGE,
++			&req, sizeof(req), &resp, sizeof(resp),
++			&ack_len);
++
++	if (rc != SBI_SUCCESS || !ack_len)
++		panic("SBI ReqFwd retrieve message returns error");
++
++	memcpy(args, resp.request_message, sizeof(*args));
++}
++
++/* Called with all exception being masked */
++static void
++thread_sbi_mpxy_reqfwd_complete_message(struct thread_abi_args *args)
++{
++	struct rpmi_reqfwd_complete_current_message_resp resp = { };
++	struct sbi_mpxy *mpxy;
++	uint32_t ack_len;
++	int ret;
++
++	mpxy = &sbi_mpxy_hart_data[get_core_pos()];
++
++	ret = sbi_mpxy_send_message_withresp(
++			mpxy, mpxy->channel_id,
++			RPMI_REQFWD_SRV_COMPLETE_CURRENT_MESSAGE,
++			args, sizeof(unsigned long) * 5,
++			&resp, sizeof(resp),
++			&ack_len);
++
++	if (ret != SBI_SUCCESS || resp.status != RPMI_SUCCESS)
++		panic("SBI ReqFwd complete message returns error");
++}
++
++static void thread_handle_request(struct thread_abi_args *args)
++{
++	uint32_t funcid_type;
++	int rc;
++
++	// DMSG("Sent from host domain: "
++	//      "args->a0=0x%08lX, args->a1=0x%08lX, args->a2=0x%08lX "
++	//      "args->a3=0x%08lX, args->a4=0x%08lX, args->a5=0x%08lX",
++	//      args->a0, args->a1, args->a2, args->a3, args->a4, args->a5);
++
++	funcid_type = GET_ABI_ENTRY_TYPE(args->a0);
++	if (funcid_type == ABI_ENTRY_TYPE_YIELD) {
++		rc = thread_handle_std_abi(args->a0, args->a1, args->a2,
++					   args->a3, args->a4, args->a5,
++					   args->a6, args->a7);
++
++		/*
++		 * Normally thread_handle_std_abi() should return via
++		 * thread_rpc(), but if thread_handle_std_abi() hasn't switched
++		 * stack (error detected) it will do a normal "C" return.
++		 */
++		/* Restore thread_handle_std_abi() return value */
++		args->a1 = rc;
++		args->a2 = 0;
++		args->a3 = 0;
++		args->a4 = 0;
++		args->a5 = 0;
++		args->a0 = TEEABI_OPTEED_RETURN_CALL_DONE;
++	} else if (funcid_type == ABI_ENTRY_TYPE_FAST) {
++		thread_handle_fast_abi(args);
++		args->a5 = args->a4;
++		args->a4 = args->a3;
++		args->a3 = args->a2;
++		args->a2 = args->a1;
++		args->a1 = args->a0;
++		args->a0 = TEEABI_OPTEED_RETURN_CALL_DONE;
++	}
++
++	// DMSG("Send to host domain: "
++	//      "args->a0=0x%08lX, args->a1=0x%08lX, args->a2=0x%08lX "
++	//      "args->a3=0x%08lX, args->a4=0x%08lX, args->a5=0x%08lX",
++	//      args->a0, args->a1, args->a2, args->a3, args->a4, args->a5);
++}
++
++void __noreturn
++thread_return_to_udomain_by_sbi_mpxy(unsigned long arg0,
++				     unsigned long arg1,
++				     unsigned long arg2,
++				     unsigned long arg3,
++				     unsigned long arg4,
++				     unsigned long arg5 __unused)
++{
++	struct thread_abi_args args = { .a0 = arg0, .a1 = arg1, .a2 = arg2,
++					.a3 = arg3, .a4 = arg4 };
++
++	assert((thread_get_exceptions() & THREAD_EXCP_ALL) == THREAD_EXCP_ALL);
++
++	/*
++	 * Complete message except the following two cases:
++	 *  - a0 = TEEABI_OPTEED_RETURN_ENTRY_DONE
++	 *  - a0 = TEEABI_OPTEED_RETURN_ON_DONE
++	 * These two cases happen in boot time when OP-TEE finishes boot time
++	 * initialization. There are no message to be handled so we don't need
++	 * to complete message.
++	 */
++	if (arg0 == TEEABI_OPTEED_RETURN_ENTRY_DONE ||
++	    arg0 == TEEABI_OPTEED_RETURN_ON_DONE)
++	    goto msg_loop;
++
++	thread_sbi_mpxy_reqfwd_complete_message(&args);
++
++msg_loop:
++	while (1) {
++		thread_sbi_mpxy_reqfwd_retrieve_message(&args);
++		thread_handle_request(&args);
++		thread_sbi_mpxy_reqfwd_complete_message(&args);
++	}
++}
++
++void boot_secondary_init_sbi_mpxy(void)
++{
++	sbi_mpxy_setup_shmem(get_core_pos());
++}
++
++void boot_primary_init_sbi_mpxy(void)
++{
++	struct dt_descriptor *dt = get_external_dt_desc();
++	void *fdt = dt->blob;
++	const fdt32_t *p = NULL;
++	int ret, i, node, len;
++	uint32_t prot_id;
++	size_t pos;
++
++	if (!sbi_probe_extension(SBI_EXT_MPXY))
++		panic("sbi mpxy extension must be supported");
++
++	node = -1;
++	i = 0;
++	do {
++		node = fdt_node_offset_by_compatible(fdt, node,
++						     "riscv,sbi-mpxy-reqfwd");
++		if (node < 0)
++			break;
++	
++		p = fdt_getprop(fdt, node, "riscv,sbi-mpxy-channel-id", &len);
++		if (!p)
++			panic("\"riscv,sbi-mpxy-channel-id\" is not provided"
++			      " in \"riscv,sbi-mpxy-reqfwd\" node");
++		sbi_mpxy_hart_data[i].channel_id = fdt32_to_cpu(*p);
++		i++;
++	} while (node != -FDT_ERR_NOTFOUND);
++
++	if (i != CFG_TEE_CORE_NB_CORE)
++		panic("\"riscv,sbi-mpxy-channel-id\" not enough channels");
++
++	/* Setup MPXY share memory for primary hart */
++	pos = get_core_pos();
++	ret = sbi_mpxy_setup_shmem(pos);
++	if (ret)
++		panic("Failed to setup MPXY shared memory");
++
++	/* Check channel protocol ID */
++	for (i = 0; i < CFG_TEE_CORE_NB_CORE; i++) {
++		ret = sbi_mpxy_read_attributes(sbi_mpxy_hart_data[i].channel_id,
++					       SBI_MPXY_ATTR_MSG_PROT_ID, 1,
++					       &prot_id);
++		if (ret) {
++			EMSG("Read MPXY channel-%d protocol ID failed, ret=%d",
++			     sbi_mpxy_hart_data[i].channel_id, ret);
++			panic();
++		}
++		if (prot_id != SBI_MPXY_MSGPROTO_RPMI_ID) {
++			EMSG("MPXY channel-%d protocol ID %d not matched",
++			     sbi_mpxy_hart_data[i].channel_id, prot_id);
++			panic();
++		}
++		DMSG("Registerd MPXY channel-%d supports protocol ID %d",
++		     sbi_mpxy_hart_data[i].channel_id, prot_id);
++	}
++}
+diff --git a/core/arch/riscv/kernel/sub.mk b/core/arch/riscv/kernel/sub.mk
+index ddfe31b3f5de..0093197efd1a 100644
+--- a/core/arch/riscv/kernel/sub.mk
++++ b/core/arch/riscv/kernel/sub.mk
+@@ -4,6 +4,7 @@ srcs-y += csr_detect.S
+ srcs-y += idle.c
+ srcs-$(CFG_RISCV_TIME_SOURCE_RDTIME) += tee_time_rdtime.c
+ srcs-$(CFG_RISCV_SBI) += sbi.c
++srcs-$(CFG_RISCV_SBI) += sbi_mpxy.c
+ srcs-$(CFG_RISCV_SBI_CONSOLE) += sbi_console.c
+ srcs-y += boot.c
+ srcs-y += entry.S
+diff --git a/core/arch/riscv/kernel/thread_optee_abi_rv.S b/core/arch/riscv/kernel/thread_optee_abi_rv.S
+index 3702940ae771..f0a31553c1b1 100644
+--- a/core/arch/riscv/kernel/thread_optee_abi_rv.S
++++ b/core/arch/riscv/kernel/thread_optee_abi_rv.S
+@@ -30,9 +30,7 @@
+ FUNC thread_return_to_udomain , :
+ 	/* Caller should provide arguments in a0~a5 */
+ #if defined(CFG_RISCV_WITH_M_MODE_SM)
+-	li	a7, SBI_EXT_TEE		/* extension ID */
+-	li	a6, 0			/* function ID (unused) */
+-	ecall
++	j	thread_return_to_udomain_by_sbi_mpxy
+ #else
+ 	/* Other protocol */
+ #endif
+-- 
+2.43.0
+

@@ -1,0 +1,175 @@
+From 9fb3ca2a0ffd83b059a26831bb48038a7da05cd1 Mon Sep 17 00:00:00 2001
+From: Yu-Chien Peter Lin <peter.lin@sifive.com>
+Date: Fri, 25 Apr 2025 23:35:46 -0700
+Subject: [RISE 10/10] [TEMP] core: riscv: allow arbitrary channel id for
+ reqfwd service
+
+Currently, the channel id for reqfwd service is fixed to
+(0x10 + hartid) and hartid must start from 0.
+
+This patch allows arbitrary channel id for reqfwd service.
+We use test,owner-hart property to temporarily specify the
+hartid which owns the reqfwd channel.
+
+OpenSBI will map corresponding reqfwd channel to mm channel,
+hance the the riscv,sbi-mpxy-mm nodes also need to specify
+the hartid and reqfwd channel id by test,* properties.
+
+  rpmi_mm_0 {
+  	opensbi-domain-instance = <&tdomain>;
+  	riscv,sbi-mpxy-channel-id = <0x0>;
+  	test,owner-hart = <0x1>;
+  	test,reqfwd-channel-id = <0x10>;
+  	compatible = "riscv,sbi-mpxy-mm";
+  };
+  rpmi_reqfwd_0 {
+  	riscv,sbi-mpxy-channel-id = <0x10>;
+  	test,owner-hart = <0x1>;
+  	compatible = "riscv,sbi-mpxy-reqfwd";
+  };
+
+Signed-off-by: Yu-Chien Peter Lin <peter.lin@sifive.com>
+---
+ core/arch/riscv/kernel/sbi_mpxy.c | 54 ++++++++++++++++++++++++-------
+ 1 file changed, 43 insertions(+), 11 deletions(-)
+
+diff --git a/core/arch/riscv/kernel/sbi_mpxy.c b/core/arch/riscv/kernel/sbi_mpxy.c
+index fc81ac4e0089..289a072aa15b 100644
+--- a/core/arch/riscv/kernel/sbi_mpxy.c
++++ b/core/arch/riscv/kernel/sbi_mpxy.c
+@@ -32,14 +32,34 @@
+ struct sbi_mpxy {
+ 	struct io_pa_va shmem_base;
+ 	uint32_t channel_id;
++	/* owner hart of this reqfwd channel */
++	uint32_t hartid;
+ 	bool active;
+ };
+ 
++/*
++ * Note that this table is NOT indexed by hartid since we don't
++ * know hart index for each hart when calling boot_primary_init_sbi_mpxy(),
++ * instead, we use hartid to locate the sbi_mpxy instance.
++ */
+ static struct sbi_mpxy sbi_mpxy_hart_data[CFG_TEE_CORE_NB_CORE];
+ 
+-static int sbi_mpxy_setup_shmem(unsigned int hartid)
++static struct sbi_mpxy *get_thishart_mpxy(void)
++{
++	uint32_t hartid = thread_get_current_hartid();
++
++	for (int i = 0; i < CFG_TEE_CORE_NB_CORE; i++) {
++		if (hartid == sbi_mpxy_hart_data[i].hartid)
++			return &sbi_mpxy_hart_data[i];
++	}
++	EMSG("invalid hartid %d", hartid);
++
++	return NULL;
++}
++
++static int sbi_mpxy_setup_shmem(void)
+ {
+-	struct sbi_mpxy *mpxy = &sbi_mpxy_hart_data[hartid];
++	struct sbi_mpxy *mpxy = get_thishart_mpxy();
+ 	struct sbiret ret;
+ 	void *shmem;
+ 
+@@ -60,14 +80,14 @@ static int sbi_mpxy_setup_shmem(unsigned int hartid)
+ 			mpxy->shmem_base.pa, 0, 0);
+ 	if (ret.error) {
+ 		EMSG("Setup MPXY shared memory for hart%d error %ld",
+-		     hartid, ret.error);
++		     thread_get_current_hartid(), ret.error);
+ 		return SBI_ERR_FAILURE;
+ 	}
+ 
+ 	mpxy->active = true;
+ 
+ 	EMSG("Setup MPXY shared memory for hart%d OK, PA: 0x%lX, VA: 0x%lX\n",
+-	     hartid, mpxy->shmem_base.pa, mpxy->shmem_base.va);
++	     thread_get_current_hartid(), mpxy->shmem_base.pa, mpxy->shmem_base.va);
+ 
+ 	return SBI_SUCCESS;
+ }
+@@ -86,7 +106,8 @@ static int sbi_mpxy_read_attributes(uint32_t channel_id,
+ 
+ 	exceptions = thread_mask_exceptions(THREAD_EXCP_ALL);
+ 
+-	mpxy = &sbi_mpxy_hart_data[get_core_pos()];
++	mpxy = get_thishart_mpxy();
++
+ 	ret = sbi_ecall(SBI_EXT_MPXY, SBI_EXT_MPXY_READ_ATTRS,
+ 			channel_id, base_attribute_id, attribute_count,
+ 			0, 0, 0);
+@@ -136,7 +157,7 @@ thread_sbi_mpxy_reqfwd_retrieve_message(struct thread_abi_args *args)
+ 	uint32_t ack_len;
+ 	int rc;
+ 
+-	mpxy = &sbi_mpxy_hart_data[get_core_pos()];
++	mpxy = get_thishart_mpxy();
+ 
+ 	req.start_index = 0;
+ 	rc = sbi_mpxy_send_message_withresp(
+@@ -160,7 +181,7 @@ thread_sbi_mpxy_reqfwd_complete_message(struct thread_abi_args *args)
+ 	uint32_t ack_len;
+ 	int ret;
+ 
+-	mpxy = &sbi_mpxy_hart_data[get_core_pos()];
++	mpxy = get_thishart_mpxy();
+ 
+ 	ret = sbi_mpxy_send_message_withresp(
+ 			mpxy, mpxy->channel_id,
+@@ -254,7 +275,7 @@ msg_loop:
+ 
+ void boot_secondary_init_sbi_mpxy(void)
+ {
+-	sbi_mpxy_setup_shmem(get_core_pos());
++	sbi_mpxy_setup_shmem();
+ }
+ 
+ void boot_primary_init_sbi_mpxy(void)
+@@ -264,11 +285,18 @@ void boot_primary_init_sbi_mpxy(void)
+ 	const fdt32_t *p = NULL;
+ 	int ret, i, node, len;
+ 	uint32_t prot_id;
+-	size_t pos;
+ 
+ 	if (!sbi_probe_extension(SBI_EXT_MPXY))
+ 		panic("sbi mpxy extension must be supported");
+ 
++	/* Sample RPMI ReqFwd channel node:
++	 *
++	 * rpmi_reqfwd_0 {
++	 * 	riscv,sbi-mpxy-channel-id = <0x10>;
++	 * 	test,owner-hart = <0x1>;
++	 * 	compatible = "riscv,sbi-mpxy-reqfwd";
++	 * };
++	 */
+ 	node = -1;
+ 	i = 0;
+ 	do {
+@@ -282,6 +310,11 @@ void boot_primary_init_sbi_mpxy(void)
+ 			panic("\"riscv,sbi-mpxy-channel-id\" is not provided"
+ 			      " in \"riscv,sbi-mpxy-reqfwd\" node");
+ 		sbi_mpxy_hart_data[i].channel_id = fdt32_to_cpu(*p);
++		p = fdt_getprop(fdt, node, "test,owner-hart", &len);
++		if (!p)
++			panic("\"test,owner-hart\" is not provided"
++			      " in \"riscv,sbi-mpxy-reqfwd\" node");
++		sbi_mpxy_hart_data[i].hartid = fdt32_to_cpu(*p);
+ 		i++;
+ 	} while (node != -FDT_ERR_NOTFOUND);
+ 
+@@ -289,8 +322,7 @@ void boot_primary_init_sbi_mpxy(void)
+ 		panic("\"riscv,sbi-mpxy-channel-id\" not enough channels");
+ 
+ 	/* Setup MPXY share memory for primary hart */
+-	pos = get_core_pos();
+-	ret = sbi_mpxy_setup_shmem(pos);
++	ret = sbi_mpxy_setup_shmem();
+ 	if (ret)
+ 		panic("Failed to setup MPXY shared memory");
+ 
+-- 
+2.43.0
+
