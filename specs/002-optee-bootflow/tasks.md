@@ -144,7 +144,7 @@
 
 - [x] T045 [P] Update `README.md` with OP-TEE feature summary
 - [ ] T046 [P] Update `specs/002-optee-bootflow/quickstart.md` with actual tested commands
-- [ ] T047 [P] Create `docs/optee-memory-layout.md` documenting PMP configuration
+- [x] T047 [P] Create `docs/optee-memory-layout.md` documenting PMP configuration
 - [ ] T048 Update `docs/boot-flow.md` with OP-TEE boot sequence diagram
 - [ ] T049 Run full build with `./scripts/build_all.sh --optee` and time it (SC-007: < 30 min)
 - [ ] T050 Run boot test and verify SC-001 (boot < 60 seconds)
