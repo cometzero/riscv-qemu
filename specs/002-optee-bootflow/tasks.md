@@ -31,7 +31,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until patches are applied
 
-- [ ] T008 Apply extracted patches to `sources/optee_os` and create local branch `optee-riscv-qemu` *(BLOCKED: patch conflicts)*
+- [x] T008 Apply extracted patches to `sources/optee_os` and create local branch `optee-riscv-qemu`
 - [ ] T009 Apply extracted patches to `sources/opensbi` and create local branch `optee-spd` *(BLOCKED: patch conflicts)*
 - [ ] T010 Apply extracted patches to `sources/linux` and create local branch `optee-tee-driver` *(BLOCKED: patch conflicts)*
 - [ ] T011 Apply extracted patches to `sources/u-boot` if needed and create local branch `optee-support` *(BLOCKED: patch conflicts)*
