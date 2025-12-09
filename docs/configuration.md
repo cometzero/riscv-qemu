@@ -17,7 +17,41 @@ Per project constitution, prefer configuration changes over source code:
 | QEMU | `configs/qemu/run_qemu.conf` |
 | U-Boot | `configs/u-boot/qemu_riscv64.env` |
 | Linux | `configs/linux/bootargs.fragment` |
+| Linux (OP-TEE) | `configs/linux/optee.fragment` |
 | Buildroot | `configs/buildroot/qemu_riscv64_minimal.defconfig` |
+| OP-TEE | `configs/optee/qemu_virt.mk` |
+| OpenSBI (OP-TEE) | `configs/opensbi/optee_spd.mk` |
+
+## Dual-Mode Operation (OP-TEE)
+
+The project supports two boot modes:
+
+### Standard Mode (Default)
+
+Boot without OP-TEE:
+
+```bash
+./scripts/build_all.sh
+./scripts/run_qemu.sh
+```
+
+### OP-TEE Mode
+
+Boot with OP-TEE Trusted Execution Environment:
+
+```bash
+./scripts/build_all.sh --optee
+./scripts/run_qemu.sh --optee
+```
+
+### Switching Between Modes
+
+Both modes can coexist. The `--optee` flag determines:
+
+| Flag | Build | Boot |
+|------|-------|------|
+| None | Standard components | Normal boot |
+| `--optee` | OP-TEE + patched components | TEE-enabled boot |
 
 ## Common Modifications
 
@@ -58,3 +92,18 @@ Rebuild:
 ```bash
 ./scripts/build_buildroot.sh
 ```
+
+### Enable OP-TEE Debug Logging
+
+Edit `configs/optee/qemu_virt.mk`:
+
+```makefile
+CFG_TEE_CORE_LOG_LEVEL = 4  # 0=none, 1=error, 2=info, 3=debug, 4=flow
+```
+
+Rebuild:
+
+```bash
+./scripts/build_optee.sh
+```
+

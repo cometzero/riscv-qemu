@@ -1,9 +1,25 @@
 #!/bin/bash
 # Build OP-TEE OS for RISC-V QEMU virt platform
+# Usage: build_optee.sh [--help]
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/env.sh"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --help|-h)
+            echo "Usage: $0"
+            echo "  Build OP-TEE OS for RISC-V QEMU virt platform"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
 
 # OP-TEE source and build directories
 OPTEE_SRC="${SOURCES_DIR}/optee_os"

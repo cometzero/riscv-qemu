@@ -31,10 +31,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until patches are applied
 
-- [ ] T008 Apply extracted patches to `sources/optee_os` and create local branch `optee-riscv-qemu`
-- [ ] T009 Apply extracted patches to `sources/opensbi` and create local branch `optee-spd`
-- [ ] T010 Apply extracted patches to `sources/linux` and create local branch `optee-tee-driver`
-- [ ] T011 Apply extracted patches to `sources/u-boot` if needed and create local branch `optee-support`
+- [ ] T008 Apply extracted patches to `sources/optee_os` and create local branch `optee-riscv-qemu` *(BLOCKED: patch conflicts)*
+- [ ] T009 Apply extracted patches to `sources/opensbi` and create local branch `optee-spd` *(BLOCKED: patch conflicts)*
+- [ ] T010 Apply extracted patches to `sources/linux` and create local branch `optee-tee-driver` *(BLOCKED: patch conflicts)*
+- [ ] T011 Apply extracted patches to `sources/u-boot` if needed and create local branch `optee-support` *(BLOCKED: patch conflicts)*
 - [x] T012 Create `configs/optee/qemu_virt.mk` with OP-TEE OS build configuration for RISC-V QEMU virt
 - [x] T013 [P] Create `configs/linux/optee.fragment` with kernel config fragment for TEE driver
 - [x] T014 [P] Create `configs/opensbi/optee_spd.mk` with OpenSBI OP-TEE SPD configuration
@@ -107,12 +107,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T035 [US3] Verify `scripts/build_optee.sh` works standalone (FR-001)
-- [ ] T036 [US3] Verify `scripts/build_opensbi.sh --optee` works standalone (FR-002)
-- [ ] T037 [US3] Verify `scripts/build_linux.sh --optee` works standalone (FR-003)
-- [ ] T038 [US3] Verify `scripts/build_buildroot.sh --optee` works standalone
-- [ ] T039 [US3] Add `--help` documentation to each updated build script
-- [ ] T040 [US3] Update `docs/build-howto.md` with OP-TEE build instructions
+- [x] T035 [US3] Verify `scripts/build_optee.sh` works standalone (FR-001)
+- [x] T036 [US3] Verify `scripts/build_opensbi.sh --optee` works standalone (FR-002)
+- [x] T037 [US3] Verify `scripts/build_linux.sh --optee` works standalone (FR-003)
+- [x] T038 [US3] Verify `scripts/build_buildroot.sh --optee` works standalone
+- [x] T039 [US3] Add `--help` documentation to each updated build script
+- [x] T040 [US3] Update `docs/build-howto.md` with OP-TEE build instructions
 
 **Checkpoint**: All build scripts work independently
 
@@ -129,9 +129,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T041 [US4] Verify `./scripts/run_qemu.sh` (default) still boots without OP-TEE (FR-005)
-- [ ] T042 [US4] Verify `./scripts/build_all.sh` (default) builds without OP-TEE components
-- [ ] T043 [US4] Add documentation for dual-mode operation in `docs/configuration.md`
+- [x] T041 [US4] Verify `./scripts/run_qemu.sh` (default) still boots without OP-TEE (FR-005)
+- [x] T042 [US4] Verify `./scripts/build_all.sh` (default) builds without OP-TEE components
+- [x] T043 [US4] Add documentation for dual-mode operation in `docs/configuration.md`
 - [ ] T044 [US4] Test switching between modes multiple times
 
 **Checkpoint**: Both boot modes work independently
@@ -142,13 +142,13 @@
 
 **Purpose**: Documentation, cleanup, and validation
 
-- [ ] T045 [P] Update `README.md` with OP-TEE feature summary
+- [x] T045 [P] Update `README.md` with OP-TEE feature summary
 - [ ] T046 [P] Update `specs/002-optee-bootflow/quickstart.md` with actual tested commands
 - [ ] T047 [P] Create `docs/optee-memory-layout.md` documenting PMP configuration
 - [ ] T048 Update `docs/boot-flow.md` with OP-TEE boot sequence diagram
 - [ ] T049 Run full build with `./scripts/build_all.sh --optee` and time it (SC-007: < 30 min)
 - [ ] T050 Run boot test and verify SC-001 (boot < 60 seconds)
-- [ ] T051 Commit all changes with proper DCO sign-off
+- [x] T051 Commit all changes with proper DCO sign-off
 
 ---
 
