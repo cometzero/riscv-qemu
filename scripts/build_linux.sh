@@ -55,8 +55,11 @@ if [ "${OPTEE_MODE}" = true ]; then
     OPTEE_FRAGMENT="${CONFIGS_DIR}/linux/optee.fragment"
     if [ -f "${OPTEE_FRAGMENT}" ]; then
         echo "[Linux] Applying OP-TEE config fragment..."
-        # Merge the OP-TEE config options
-        cat "${OPTEE_FRAGMENT}" >> "${LINUX_BUILD}/.config"
+        # Use merge_config.sh for proper fragment merging
+        cd "${LINUX_BUILD}"
+        "${LINUX_SRC}/scripts/kconfig/merge_config.sh" -m .config "${OPTEE_FRAGMENT}" \
+            >> "${LOG_FILE}" 2>&1
+        cd "${LINUX_SRC}"
         make \
             ARCH=${ARCH} \
             CROSS_COMPILE=${CROSS_COMPILE} \
