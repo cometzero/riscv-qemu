@@ -11,6 +11,14 @@ OP-TEE (Open Portable Trusted Execution Environment) is an open-source TEE desig
 
 **Reference**: [RISE Project OP-TEE Implementation](https://lf-rise.atlassian.net/wiki/spaces/HOME/pages/8587868/OPTEE_00_01+-+OP-TEE+support)
 
+## Clarifications
+
+### Session 2025-12-09
+
+- Q: Which RISE repository branch strategy to use? → A: Use `dev-optee-mpxy-v5` patches rebased on latest upstream subproject revisions (not RISE forks directly)
+- Q: What xtest pass rate target is appropriate? → A: 80% (realistic for initial RISC-V port)
+- Q: OP-TEE OS source strategy? → A: Apply RISE patches on upstream OP-TEE (same rebase strategy as other components)
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Run OP-TEE with QEMU (Priority: P1) 🎯 MVP
@@ -98,7 +106,7 @@ As a developer, I want to choose between booting with or without OP-TEE so that 
 - **FR-007**: System MUST include `xtest` test suite in the rootfs for validation
 - **FR-008**: System MUST include OP-TEE example applications in the rootfs
 - **FR-009**: Boot flow MUST follow: U-Boot SPL → OpenSBI (with OP-TEE) → U-Boot proper → Linux
-- **FR-010**: OP-TEE MUST use the RISE project forked repositories for RISC-V support
+- **FR-010**: OP-TEE patches MUST be extracted from RISE project `dev-optee-mpxy-v5` branch and rebased on latest upstream subproject revisions
 - **FR-011**: System MUST support static shared memory region between TEE and REE
 - **FR-012**: System MUST expose TEE devices (`/dev/tee0`, `/dev/teepriv0`) in Linux
 
@@ -132,7 +140,7 @@ Based on RISE project specification:
 
 - **SC-001**: QEMU boots to login prompt with OP-TEE enabled within 60 seconds
 - **SC-002**: Linux kernel shows OP-TEE driver loaded (`/dev/tee0` device present)
-- **SC-003**: `xtest` core tests (categories 1-6) pass with 90% or higher success rate
+- **SC-003**: `xtest` core tests (categories 1-6) pass with 80% or higher success rate
 - **SC-004**: Example OP-TEE applications (`optee_example_hello_world`) execute successfully
 - **SC-005**: PMP isolation is verified (secure memory not accessible from normal world)
 - **SC-006**: Existing non-OP-TEE boot flow continues to work unchanged
