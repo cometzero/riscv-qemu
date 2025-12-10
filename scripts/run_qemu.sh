@@ -116,6 +116,7 @@ BOOTSCR
 mkimage -A riscv -T script -C none -d "${BOOT_MNT}/boot.cmd" "${BOOT_MNT}/boot.scr" 2>/dev/null || \
     sudo cp "${BOOT_MNT}/boot.cmd" "${BOOT_MNT}/boot.scr"
 
+sudo sync
 sudo umount "${BOOT_MNT}"
 rmdir "${BOOT_MNT}"
 
