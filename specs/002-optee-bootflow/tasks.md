@@ -32,9 +32,9 @@
 **⚠️ CRITICAL**: No user story work can begin until patches are applied
 
 - [x] T008 Apply extracted patches to `sources/optee_os` and create local branch `optee-riscv-qemu`
-- [ ] T009 Apply extracted patches to `sources/opensbi` and create local branch `optee-spd` *(BLOCKED: patch conflicts)*
-- [ ] T010 Apply extracted patches to `sources/linux` and create local branch `optee-tee-driver` *(BLOCKED: patch conflicts)*
-- [ ] T011 Apply extracted patches to `sources/u-boot` if needed and create local branch `optee-support` *(BLOCKED: patch conflicts)*
+- [x] T009 Apply extracted patches to `sources/opensbi` and create local branch `optee-riscv-qemu`
+- [x] T010 Apply extracted patches to `sources/linux` and create local branch (TEE driver in defconfig)
+- [x] T011 Apply extracted patches to `sources/u-boot` (no changes needed)
 - [x] T012 Create `configs/optee/qemu_virt.mk` with OP-TEE OS build configuration for RISC-V QEMU virt
 - [x] T013 [P] Create `configs/linux/optee.fragment` with kernel config fragment for TEE driver
 - [x] T014 [P] Create `configs/opensbi/optee_spd.mk` with OpenSBI OP-TEE SPD configuration
@@ -64,8 +64,8 @@
 - [x] T021 [US1] Build OP-TEE OS and verify `tee.bin` is produced in `build/optee/`
 - [x] T022 [US1] Build OpenSBI with OP-TEE SPD and verify `fw_dynamic.bin` includes OP-TEE
 - [x] T023 [US1] Build Linux with TEE driver and verify `Image` includes TEE support
-- [ ] T024 [US1] Run QEMU with `--optee` and verify OpenSBI shows OP-TEE messages
-- [ ] T025 [US1] Verify Linux boots and `/dev/tee0` device is present
+- [ ] T024 [US1] Run QEMU with `--optee` and verify OpenSBI shows OP-TEE messages *(IN PROGRESS: runtime integration needed)*
+- [ ] T025 [US1] Verify Linux boots and `/dev/tee0` device is present *(BLOCKED: needs T024)*
 - [x] T026 [US1] Document boot flow with OP-TEE in `docs/optee-boot-flow.md`
 
 **Checkpoint**: OP-TEE boots successfully, `/dev/tee0` present - MVP complete
