@@ -71,12 +71,13 @@ if [ "${OPTEE_MODE}" = true ]; then
     fi
 fi
 
-# Build kernel Image
-echo "[Linux] Building with ${NPROC} jobs..."
+# Build kernel Image only (no modules)
+echo "[Linux] Building Image with ${NPROC} jobs..."
 make \
     ARCH=${ARCH} \
     CROSS_COMPILE=${CROSS_COMPILE} \
     O="${LINUX_BUILD}" \
+    Image \
     -j${NPROC} \
     >> "${LOG_FILE}" 2>&1
 
