@@ -1,0 +1,64 @@
+/*
+ * Device Tree Overlay for OP-TEE domain on QEMU virt
+ * This overlay configures OpenSBI domains for TEE/REE isolation
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "riscv-virtio";
+    
+    fragment@0 {
+        target-path = "/chosen";
+        __overlay__ {
+            opensbi-domains {
+                compatible = "opensbi,domain,config";
+                
+                /* OP-TEE secure memory region: 16 MiB at 0xF1000000 */
+                optee_mem: optee-mem {
+                    compatible = "opensbi,domain,memregion";
+                    base = <0x0 0xF1000000>;
+                    order = <24>;  /* 16 MiB = 2^24 */
+                };
+                
+                /* Shared memory region: 2 MiB at 0xF2000000 */
+                shmem: shared-mem {
+                    compatible = "opensbi,domain,memregion";
+                    base = <0x0 0xF2000000>;
+                    order = <21>;  /* 2 MiB = 2^21 */
+                };
+                
+                /* Full memory access for normal world */
+                allmem: all-mem {
+                    compatible = "opensbi,domain,memregion";
+                    base = <0x0 0x0>;
+                    order = <64>;
+                };
+                
+                /* OP-TEE domain (TEE/Secure World) */
+                optee_domain: optee-domain {
+                    compatible = "opensbi,domain,instance";
+                    possible-harts = <&cpu0>;
+                    /* 0x3f = R|W|X for M/S/U modes */
+                    regions = <&optee_mem 0x3f>, <&shmem 0x3f>;
+                    boot-hart = <&cpu0>;
+                    next-arg1 = <0x0 0x0>;
+                    next-addr = <0x0 0xF1000000>;
+                    next-mode = <0x1>;  /* S-mode */
+                    system-reset-allowed;
+                };
+                
+                /* Linux domain (REE/Normal World) */
+                linux_domain: linux-domain {
+                    compatible = "opensbi,domain,instance";
+                    possible-harts = <&cpu0>;
+                    /* OP-TEE mem: no access (0x0), shared mem: R|W (0x6), all mem: full (0x3f) */
+                    regions = <&optee_mem 0x0>, <&shmem 0x3f>, <&allmem 0x3f>;
+                    next-mode = <0x1>;  /* S-mode */
+                    system-reset-allowed;
+                    system-suspend-allowed;
+                };
+            };
+        };
+    };
+};

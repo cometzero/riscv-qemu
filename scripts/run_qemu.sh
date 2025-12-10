@@ -127,10 +127,19 @@ echo ""
 # Additional QEMU options for OP-TEE
 QEMU_EXTRA_ARGS=""
 if [ "${OPTEE_MODE}" = true ]; then
-    # OP-TEE mode may require additional memory or configuration
+    # OP-TEE mode configuration
     MEMORY="1G"
-    # Note: Full OP-TEE integration requires RISE patches applied to OpenSBI
-    # The OP-TEE binary would be loaded by OpenSBI, not directly by QEMU
+    
+    # Load OP-TEE binary at its expected address (0xF1000000)
+    OPTEE_BIN="${BUILD_DIR}/optee/core/tee.bin"
+    OPTEE_ADDR="0xF1000000"
+    
+    if [ -f "${OPTEE_BIN}" ]; then
+        echo "Loading OP-TEE at ${OPTEE_ADDR}"
+        QEMU_EXTRA_ARGS="-device loader,file=${OPTEE_BIN},addr=${OPTEE_ADDR}"
+    else
+        echo "WARNING: OP-TEE binary not found at ${OPTEE_BIN}"
+    fi
 fi
 
 exec "${QEMU_BIN}" \
@@ -140,6 +149,7 @@ exec "${QEMU_BIN}" \
     -nographic \
     -bios "${SPL_BIN}" \
     -device loader,file="${FIT_BIN}",addr=${FIT_ADDR} \
+    ${QEMU_EXTRA_ARGS} \
     -drive file="${BOOT_IMG}",format=raw,if=none,id=hd0 \
     -device virtio-blk-device,drive=hd0 \
     -netdev user,id=net0 \
