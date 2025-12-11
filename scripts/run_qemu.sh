@@ -43,7 +43,7 @@ BOOT_IMG="${BUILD_DIR}/boot.img"
 
 # Configuration
 MACHINE="virt"
-MEMORY="2G"
+MEMORY="4G"
 SMP="2"
 FIT_ADDR="0x80200000"
 

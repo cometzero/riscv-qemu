@@ -12,7 +12,7 @@ mkdir -p "${DTS_DIR}"
 echo "Generating base DTB from QEMU virt..."
 ${QEMU_SRC}/build/qemu-system-riscv64 \
     -M virt,dumpdtb="${DTS_DIR}/virt-base.dtb" \
-    -m 2G \
+    -m 4G \
     -smp 2 \
     2>/dev/null
 

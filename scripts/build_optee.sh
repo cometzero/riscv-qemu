@@ -55,7 +55,13 @@ echo "[OP-TEE] Building for RISC-V QEMU virt..."
         PLATFORM=virt \
         ARCH=riscv \
         CROSS_COMPILE=${CROSS_COMPILE} \
-        CFG_TEE_CORE_LOG_LEVEL=3 \
+        CFG_TEE_CORE_LOG_LEVEL=4 \
+        CFG_TZDRAM_START=0xF1000000 \
+        CFG_TZDRAM_SIZE=0x01000000 \
+        CFG_TDDRAM_START=0xF1000000 \
+        CFG_TDDRAM_SIZE=0x00F00000 \
+        CFG_SHMEM_START=0xF2000000 \
+        CFG_SHMEM_SIZE=0x00200000 \
         O="${OPTEE_BUILD}" \
         2>&1
 ) | tee "${LOG_FILE}"
