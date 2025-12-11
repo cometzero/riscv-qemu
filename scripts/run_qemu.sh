@@ -126,9 +126,23 @@ echo ""
 
 # Additional QEMU options for OP-TEE
 QEMU_EXTRA_ARGS=""
+DTB_ARG=""
+
 if [ "${OPTEE_MODE}" = true ]; then
     # OP-TEE mode configuration
     MEMORY="1G"
+    
+    # Generate or use existing OP-TEE DTB with domain configuration
+    OPTEE_DTB="${BUILD_DIR}/dts/virt-optee.dtb"
+    if [ ! -f "${OPTEE_DTB}" ]; then
+        echo "Generating OP-TEE DTB..."
+        "${SCRIPT_DIR}/generate_optee_dtb.sh" >/dev/null 2>&1
+    fi
+    
+    if [ -f "${OPTEE_DTB}" ]; then
+        echo "Using DTB with OP-TEE domain: ${OPTEE_DTB}"
+        DTB_ARG="-dtb ${OPTEE_DTB}"
+    fi
     
     # Load OP-TEE binary at its expected address (0xF1000000)
     OPTEE_BIN="${BUILD_DIR}/optee/core/tee.bin"
@@ -149,6 +163,7 @@ exec "${QEMU_BIN}" \
     -nographic \
     -bios "${SPL_BIN}" \
     -device loader,file="${FIT_BIN}",addr=${FIT_ADDR} \
+    ${DTB_ARG} \
     ${QEMU_EXTRA_ARGS} \
     -drive file="${BOOT_IMG}",format=raw,if=none,id=hd0 \
     -device virtio-blk-device,drive=hd0 \
