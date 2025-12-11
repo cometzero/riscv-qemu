@@ -65,7 +65,7 @@
 - [x] T022 [US1] Build OpenSBI with OP-TEE SPD and verify `fw_dynamic.bin` includes OP-TEE
 - [x] T023 [US1] Build Linux with TEE driver and verify `Image` includes TEE support
 - [x] T024 [US1] Run QEMU with `--optee` and verify OpenSBI shows OP-TEE messages
-- [ ] T025 [US1] Verify Linux boots and `/dev/tee0` device is present *(PARTIAL: Domain configured, OP-TEE runtime requires MPXY handoff)*
+- [ ] T025 [US1] Verify Linux boots and `/dev/tee0` device is present *(WIP: OP-TEE domain boots, awaiting domain handoff to Linux)*
 - [x] T026 [US1] Document boot flow with OP-TEE in `docs/optee-boot-flow.md`
 
 **Checkpoint**: OP-TEE boots successfully, `/dev/tee0` present - MVP complete
