@@ -43,8 +43,8 @@ BOOT_IMG="${BUILD_DIR}/boot.img"
 
 # Configuration
 MACHINE="virt"
-MEMORY="512M"
-SMP="1"
+MEMORY="2G"
+SMP="2"
 FIT_ADDR="0x80200000"
 
 echo "=== RISC-V QEMU Boot ==="

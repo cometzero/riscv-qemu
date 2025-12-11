@@ -12,8 +12,8 @@ mkdir -p "${DTS_DIR}"
 echo "Generating base DTB from QEMU virt..."
 ${QEMU_SRC}/build/qemu-system-riscv64 \
     -M virt,dumpdtb="${DTS_DIR}/virt-base.dtb" \
-    -m 1G \
-    -smp 1 \
+    -m 2G \
+    -smp 2 \
     2>/dev/null
 
 # Step 2: Convert to DTS
@@ -71,7 +71,7 @@ in_chosen && /^\t};$/ {
     print "\t\t\t/* Linux domain (REE) - assigned by default */"
     print "\t\t\tlinux_domain: linux-domain {"
     print "\t\t\t\tcompatible = \"opensbi,domain,instance\";"
-    print "\t\t\t\tpossible-harts = <&cpu0>;"
+    print "\t\t\t\tpossible-harts = <&cpu0 &cpu1>;"
     print "\t\t\t\tregions = <&optee_mem 0x0>, <&shmem 0x3f>, <&allmem 0x3f>;"
     print "\t\t\t\tsystem-reset-allowed;"
     print "\t\t\t\tsystem-suspend-allowed;"
@@ -82,9 +82,10 @@ in_chosen && /^\t};$/ {
 { print }
 ' "${DTS_DIR}/virt-base.dts" > "${DTS_DIR}/virt-optee.dts"
 
-# Step 4: Add cpu0 label phandle reference
-# Replace "cpu@0 {" with "cpu0: cpu@0 {"
+# Step 4: Add cpu labels
+# Replace "cpu@0 {" with "cpu0: cpu@0 {" and "cpu@1 {" with "cpu1: cpu@1 {"
 sed -i 's/cpu@0 {/cpu0: cpu@0 {/' "${DTS_DIR}/virt-optee.dts"
+sed -i 's/cpu@1 {/cpu1: cpu@1 {/' "${DTS_DIR}/virt-optee.dts"
 
 # Step 5: Compile back to DTB
 echo "Compiling modified DTB..."
