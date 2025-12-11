@@ -90,20 +90,30 @@ xtest
 
 ## Current Status
 
-### Working
+### Working ✅
 
-- OP-TEE OS builds successfully (`tee.bin`)
-- OpenSBI builds with --optee flag
-- Linux builds with TEE driver config fragment
-- QEMU boots with --optee mode
+- OP-TEE OS builds successfully (`build/optee/core/tee.bin`)
+- OpenSBI recognizes OP-TEE domain via Device Tree configuration
+- Linux builds with TEE driver (`CONFIG_TEE=y`, `CONFIG_OPTEE=y`)
+- QEMU boots with `--optee` mode to Buildroot login prompt
+- OpenSBI shows domain configuration:
+  - Domain0: root
+  - Domain1: optee-domain (0xF1000000)
+  - Domain2: linux-domain (OP-TEE memory blocked)
 
-### Requires RISE Patches
+### Partially Working ⚠️
 
-The following require applying RISE project patches to submodules:
+- OP-TEE binary loaded at 0xF1000000 by QEMU
+- PMP isolation configured between TEE and REE domains
+- Linux TEE driver compiled but not detecting OP-TEE
 
-- OpenSBI: MPXY/RPMI and SPD patches for OP-TEE integration
-- Linux: TEE driver patches for RISC-V MPXY communication
-- Full OP-TEE runtime functionality
+### Remaining Work for Full Runtime
+
+For complete `/dev/tee0` functionality:
+
+1. **OpenSBI Context Switch**: OpenSBI needs to boot OP-TEE domain first
+2. **MPXY Communication**: TEE driver requires MPXY extension for REE↔TEE calls
+3. **OP-TEE Initialization**: OP-TEE OS must complete initialization before Linux
 
 ## Patch Application
 
