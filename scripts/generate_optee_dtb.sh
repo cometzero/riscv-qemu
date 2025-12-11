@@ -87,7 +87,14 @@ in_chosen && /^\t};$/ {
 sed -i 's/cpu@0 {/cpu0: cpu@0 {/' "${DTS_DIR}/virt-optee.dts"
 sed -i 's/cpu@1 {/cpu1: cpu@1 {/' "${DTS_DIR}/virt-optee.dts"
 
-# Step 5: Compile back to DTB
+# Step 5: Add opensbi-domain property to CPU nodes
+# HART 0 -> optee-domain (primary TEE core)
+# HART 1 -> linux-domain (REE core)
+# Insert after "cpu0: cpu@0 {" line
+sed -i '/cpu0: cpu@0 {/a\                        opensbi-domain = <\&optee_domain>;' "${DTS_DIR}/virt-optee.dts"
+sed -i '/cpu1: cpu@1 {/a\                        opensbi-domain = <\&linux_domain>;' "${DTS_DIR}/virt-optee.dts"
+
+# Step 6: Compile back to DTB
 echo "Compiling modified DTB..."
 dtc -I dts -O dtb "${DTS_DIR}/virt-optee.dts" -o "${DTS_DIR}/virt-optee.dtb" 2>/dev/null
 
