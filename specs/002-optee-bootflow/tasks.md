@@ -64,7 +64,7 @@
 - [x] T021 [US1] Build OP-TEE OS and verify `tee.bin` is produced in `build/optee/`
 - [x] T022 [US1] Build OpenSBI with OP-TEE SPD and verify `fw_dynamic.bin` includes OP-TEE
 - [x] T023 [US1] Build Linux with TEE driver and verify `Image` includes TEE support
-- [ ] T024 [US1] Run QEMU with `--optee` and verify OpenSBI shows OP-TEE messages *(IN PROGRESS: runtime integration needed)*
+- [x] T024 [US1] Run QEMU with `--optee` and verify OpenSBI shows OP-TEE messages
 - [ ] T025 [US1] Verify Linux boots and `/dev/tee0` device is present *(BLOCKED: needs T024)*
 - [x] T026 [US1] Document boot flow with OP-TEE in `docs/optee-boot-flow.md`
 
