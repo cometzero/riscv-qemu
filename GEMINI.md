@@ -30,7 +30,15 @@ This project uses `speckit` to generate and manage specifications. All developme
 The project constitution at `.specify/memory/constitution.md` defines:
 - Values (clarity, reproducibility, documentation)
 - Coding principles (configuration-first, upstream guidelines)
-- Git rules (50/72 commit format, DCO, atomic commits)
+- **Git Rules**:
+  - **Commit Message Format**: Follow [Conventional Commits](https://www.conventionalcommits.org/).
+    - Format: `<type>(<scope>): <subject>`
+    - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
+  - **Message Wrapping**:
+    - Subject line: Max 50 characters.
+    - Body: Wrap at 72 characters.
+  - **Signed-off-by**: All commits MUST include a `Signed-off-by` line (`git commit -s`).
+  - **Atomic Commits**: Each commit must represent a single logical change.
 - Directory structure (`./docs/`, `./sources/`, `./build/`, `./test/`, `./configs/`)
 - Build and testing discipline
 
@@ -42,6 +50,22 @@ Per constitution, always prefer configuration changes over source code:
 3. Command-line options
 4. Environment variables
 5. Source code (last resort)
+
+### File Formatting Rules
+
+- **Newline at End of File**: Always ensure every source file (code, config, markdown, etc.) ends with a newline character (`\n`). This prevents "No newline at end of file" warnings in diffs.
+
+## Configuration Locations
+
+Custom configuration files should be maintained within their respective source trees:
+
+| Component | File Type | Location |
+|-----------|-----------|----------|
+| **OpenSBI** | DTS | `sources/opensbi/platform/generic/qemu_rv64_craft.dts` |
+| **U-Boot** | DTS | `sources/u-boot/arch/riscv/dts/qemu_rv64_craft.dts` |
+| **U-Boot** | Defconfig | `sources/u-boot/configs/qemu_rv64_craft_defconfig` |
+| **Linux** | DTS | `sources/linux/arch/riscv/boot/dts/qemu/qemu_rv64_craft.dts` |
+| **Linux** | Defconfig | `sources/linux/arch/riscv/configs/qemu_rv64_craft_defconfig` |
 
 ## Current Feature Branch
 
