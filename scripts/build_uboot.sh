@@ -27,9 +27,19 @@ mkdir -p "${UBOOT_BUILD}" "${LOG_DIR}"
 
 cd "${UBOOT_SRC}"
 
+# Copy Custom DTS
+# echo "[U-Boot] Copying custom DTS..."
+# (Assuming DTS is already in sources/u-boot/arch/riscv/dts/qemu_rv64_craft.dts)
+
+# Patch Makefile to include custom DTB (if not already present)
+if ! grep -q "qemu_rv64_craft.dtb" "${UBOOT_SRC}/arch/riscv/dts/Makefile"; then
+    echo "[U-Boot] Patching arch/riscv/dts/Makefile..."
+    sed -i '/dtb-$(CONFIG_TARGET_QEMU_VIRT) +=/ s/$/ qemu_rv64_craft.dtb/' "${UBOOT_SRC}/arch/riscv/dts/Makefile"
+fi
+
 # Configure U-Boot with Custom defconfig
 echo "[U-Boot] Configuring qemu_rv64_craft_defconfig..."
-cp "${CONFIGS_DIR}/u-boot/qemu_rv64_craft_defconfig" "${UBOOT_SRC}/configs/"
+# cp "${CONFIGS_DIR}/u-boot/qemu_rv64_craft_defconfig" "${UBOOT_SRC}/configs/"
 make \
     CROSS_COMPILE=${CROSS_COMPILE} \
     O="${UBOOT_BUILD}" \

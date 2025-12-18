@@ -45,7 +45,7 @@ cd "${OPENSBI_SRC}"
 echo "[OpenSBI] Building with ${NPROC} jobs..."
 
 # Compile Custom DTS
-DTS_FILE="${CONFIGS_DIR}/qemu_rv64_craft.dts"
+DTS_FILE="${OPENSBI_SRC}/platform/generic/qemu_rv64_craft.dts"
 DTB_FILE="${BUILD_DIR}/dts/qemu_rv64_craft.dtb"
 mkdir -p "$(dirname "${DTB_FILE}")"
 
