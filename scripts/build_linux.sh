@@ -41,13 +41,14 @@ mkdir -p "${LINUX_BUILD}" "${LOG_DIR}"
 
 cd "${LINUX_SRC}"
 
-# Configure kernel with defconfig
-echo "[Linux] Configuring defconfig..."
+# Configure kernel with Custom defconfig
+echo "[Linux] Configuring qemu_rv64_craft_defconfig..."
+cp "${CONFIGS_DIR}/linux/qemu_rv64_craft_defconfig" "${LINUX_SRC}/arch/riscv/configs/"
 make \
     ARCH=${ARCH} \
     CROSS_COMPILE=${CROSS_COMPILE} \
     O="${LINUX_BUILD}" \
-    defconfig \
+    qemu_rv64_craft_defconfig \
     >> "${LOG_FILE}" 2>&1
 
 # Apply OP-TEE config fragment if requested

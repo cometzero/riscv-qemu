@@ -132,17 +132,10 @@ if [ "${OPTEE_MODE}" = true ]; then
     # OP-TEE mode configuration
     MEMORY="1G"
     
-    # Generate or use existing OP-TEE DTB with domain configuration
-    OPTEE_DTB="${BUILD_DIR}/dts/virt-optee.dtb"
-    if [ ! -f "${OPTEE_DTB}" ]; then
-        echo "Generating OP-TEE DTB..."
-        "${SCRIPT_DIR}/generate_optee_dtb.sh" >/dev/null 2>&1
-    fi
-    
-    if [ -f "${OPTEE_DTB}" ]; then
-        echo "Using DTB with OP-TEE domain: ${OPTEE_DTB}"
-        DTB_ARG="-dtb ${OPTEE_DTB}"
-    fi
+    # Note: OpenSBI is now built with FW_FDT_PATH pointing to config/qemu_rv64_craft.dts
+    # So we don't need to pass -dtb to QEMU, OpenSBI uses the built-in FDT.
+    echo "Using OpenSBI with built-in FDT (qemu_rv64_craft.dtb)"
+    DTB_ARG=""
     
     # Load OP-TEE binary at its expected address (0xF1000000)
     OPTEE_BIN="${BUILD_DIR}/optee/core/tee.bin"

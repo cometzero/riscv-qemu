@@ -27,12 +27,13 @@ mkdir -p "${UBOOT_BUILD}" "${LOG_DIR}"
 
 cd "${UBOOT_SRC}"
 
-# Configure U-Boot with SPL defconfig
-echo "[U-Boot] Configuring qemu-riscv64_spl_defconfig..."
+# Configure U-Boot with Custom defconfig
+echo "[U-Boot] Configuring qemu_rv64_craft_defconfig..."
+cp "${CONFIGS_DIR}/u-boot/qemu_rv64_craft_defconfig" "${UBOOT_SRC}/configs/"
 make \
     CROSS_COMPILE=${CROSS_COMPILE} \
     O="${UBOOT_BUILD}" \
-    qemu-riscv64_spl_defconfig \
+    qemu_rv64_craft_defconfig \
     >> "${LOG_FILE}" 2>&1
 
 # Apply custom boot configuration

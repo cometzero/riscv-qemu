@@ -44,6 +44,19 @@ cd "${OPENSBI_SRC}"
 # Build OpenSBI with generic platform
 echo "[OpenSBI] Building with ${NPROC} jobs..."
 
+# Compile Custom DTS
+DTS_FILE="${CONFIGS_DIR}/qemu_rv64_craft.dts"
+DTB_FILE="${BUILD_DIR}/dts/qemu_rv64_craft.dtb"
+mkdir -p "$(dirname "${DTB_FILE}")"
+
+if [ -f "${DTS_FILE}" ]; then
+    echo "[OpenSBI] Compiling custom DTB: ${DTS_FILE}"
+    dtc -I dts -O dtb -o "${DTB_FILE}" "${DTS_FILE}"
+else
+    echo "[OpenSBI] ERROR: Custom DTS not found at ${DTS_FILE}"
+    exit 1
+fi
+
 if [ "${OPTEE_MODE}" = true ]; then
     # Check if OP-TEE binary exists
     OPTEE_BIN="${BUILD_DIR}/optee/core/tee.bin"
@@ -52,19 +65,20 @@ if [ "${OPTEE_MODE}" = true ]; then
         echo "[OpenSBI] Building without OP-TEE payload (run build_optee.sh first)"
     fi
     
-    # Build with OP-TEE SPD configuration
-    # Note: Full OP-TEE SPD integration requires RISE patches to be applied
+    # Build with OP-TEE SPD
     make \
         PLATFORM=generic \
         CROSS_COMPILE=${CROSS_COMPILE} \
+        FW_FDT_PATH="${DTB_FILE}" \
         O="${OPENSBI_BUILD}" \
         -j${NPROC} \
         >> "${LOG_FILE}" 2>&1
 else
-    # Standard build without OP-TEE
+    # Standard build with Custom FDT
     make \
         PLATFORM=generic \
         CROSS_COMPILE=${CROSS_COMPILE} \
+        FW_FDT_PATH="${DTB_FILE}" \
         O="${OPENSBI_BUILD}" \
         -j${NPROC} \
         >> "${LOG_FILE}" 2>&1
