@@ -9,15 +9,21 @@ source "${SCRIPT_DIR}/env.sh"
 
 # Parse arguments
 OPTEE_MODE=false
+DEBUG_ARGS=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --optee)
             OPTEE_MODE=true
             shift
             ;;
+        --debug)
+            DEBUG_ARGS="-S -s"
+            shift
+            ;;
         --help|-h)
-            echo "Usage: $0 [--optee]"
+            echo "Usage: $0 [--optee] [--debug]"
             echo "  --optee  Boot with OP-TEE support"
+            echo "  --debug  Enable QEMU GDB stub (-S -s)"
             exit 0
             ;;
         *)
@@ -161,4 +167,5 @@ exec "${QEMU_BIN}" \
     -drive file="${BOOT_IMG}",format=raw,if=none,id=hd0 \
     -device virtio-blk-device,drive=hd0 \
     -netdev user,id=net0 \
-    -device virtio-net-device,netdev=net0
+    -device virtio-net-device,netdev=net0 \
+    ${DEBUG_ARGS}
