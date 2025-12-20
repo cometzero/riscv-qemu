@@ -16,6 +16,10 @@
                     "ignoreFailures": true
                 },
                 {
+                    "description": "Set GDB working directory",
+                    "text": "cd ${workspaceFolder}"
+                },
+                {
                     "description": "Load project specific debug script",
                     "text": "source ${workspaceFolder}/scripts/debug.gdb"
                 }
