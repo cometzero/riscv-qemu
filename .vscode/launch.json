@@ -6,7 +6,8 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/u-boot/spl/u-boot-spl",
-            "miDebuggerPath": "/usr/bin/gdb-multiarch",
+            "preLaunchTask": "Launch QEMU (Debug Mode)",
+            "miDebuggerPath": "${workspaceFolder}/scripts/gdb-wrapper.sh",
             "miDebuggerServerAddress": "localhost:1234",
             "cwd": "${workspaceFolder}",
             "setupCommands": [
