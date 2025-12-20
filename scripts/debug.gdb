@@ -158,6 +158,13 @@ echo \n
 echo New Command: uboot_reloc\n
 echo  Use this command after U-Boot relocation to fix symbol addresses.\n
 echo \n
-echo Pre-set breakpoints:\n
-echo  b _start (SPL entry)\n
+
+# Automate initial breakpoint
+break _start
+continue
+
+echo \n=== Debugging Configured ===\n
+echo Symbols loaded. Execution paused at '_start' (SPL).\n
+echo \n
+echo Ready to debug!
 echo \n
