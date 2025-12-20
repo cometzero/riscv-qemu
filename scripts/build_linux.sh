@@ -41,11 +41,6 @@ mkdir -p "${LINUX_BUILD}" "${LOG_DIR}"
 
 cd "${LINUX_SRC}"
 
-# Copy Custom DTS
-# echo "[Linux] Copying custom DTS..."
-# (Assuming DTS is already in sources/linux/arch/riscv/boot/dts/qemu/qemu_rv64_craft.dts)
-
-# Create/Update qemu/Makefile
 
 
 # Configure kernel with Custom defconfig
