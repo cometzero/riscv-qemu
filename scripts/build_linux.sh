@@ -46,19 +46,7 @@ cd "${LINUX_SRC}"
 # (Assuming DTS is already in sources/linux/arch/riscv/boot/dts/qemu/qemu_rv64_craft.dts)
 
 # Create/Update qemu/Makefile
-if [ ! -f "${LINUX_SRC}/arch/riscv/boot/dts/qemu/Makefile" ]; then
-    echo "dtb-y += qemu_rv64_craft.dtb" > "${LINUX_SRC}/arch/riscv/boot/dts/qemu/Makefile"
-else
-    if ! grep -q "qemu_rv64_craft.dtb" "${LINUX_SRC}/arch/riscv/boot/dts/qemu/Makefile"; then
-        echo "dtb-y += qemu_rv64_craft.dtb" >> "${LINUX_SRC}/arch/riscv/boot/dts/qemu/Makefile"
-    fi
-fi
 
-# Patch arch/riscv/boot/dts/Makefile to include qemu subdir
-if ! grep -q "subdir-y += qemu" "${LINUX_SRC}/arch/riscv/boot/dts/Makefile"; then
-    echo "[Linux] Patching arch/riscv/boot/dts/Makefile..."
-    echo "subdir-y += qemu" >> "${LINUX_SRC}/arch/riscv/boot/dts/Makefile"
-fi
 
 # Configure kernel with Custom defconfig
 echo "[Linux] Configuring qemu_rv64_craft_defconfig..."
