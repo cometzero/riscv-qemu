@@ -29,7 +29,9 @@ QEMU will hang and wait for a GDB connection.
 Use the provided GDB script to automatically load symbols for all boot stages.
 
 ```bash
-gdb-multiarch -x scripts/debug.gdb
+```bash
+gdb-multiarch -ex "target remote :1234" -x scripts/debug.gdb
+```
 ```
 
 This script:

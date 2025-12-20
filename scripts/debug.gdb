@@ -2,7 +2,9 @@
 # Usage: gdb-multiarch -x scripts/debug.gdb
 
 # Connect to QEMU
-target remote :1234
+# Connect to QEMU via environment or CLI arguments
+# target remote :1234  <-- Removed to support IDE integration (launch.json handles connection)
+
 
 # 1. SPL (Initial Boot)
 # Running at 0x80000000
