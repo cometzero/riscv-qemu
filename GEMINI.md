@@ -55,6 +55,14 @@ Per constitution, always prefer configuration changes over source code:
 
 - **Newline at End of File**: Always ensure every source file (code, config, markdown, etc.) ends with a newline character (`\n`). This prevents "No newline at end of file" warnings in diffs.
 
+
+## Debugging Policy
+
+When encountering runtime issues, boot failures, or unexpected behavior:
+1.  **Consult the Debugging Guide**: Refer to `docs/debugging.md` for detailed instructions on setting up and using GDB with QEMU.
+2.  **Use Debug Mode**: Utilize `./scripts/run_qemu.sh --debug` and `gdb-multiarch -x scripts/debug.gdb` to inspect the system state.
+3.  **Trace the Boot Flow**: Use the provided GDB commands (including `uboot_reloc`) to trace execution through SPL, OpenSBI, U-Boot Proper, and the Linux Kernel.
+
 ## Configuration Locations
 
 Custom configuration files should be maintained within their respective source trees:
