@@ -4,7 +4,12 @@
 
 # RISC-V target configuration
 export ARCH=riscv
-export CROSS_COMPILE=riscv64-linux-gnu-
+# Toolchain
+if command -v ccache &> /dev/null; then
+    export CROSS_COMPILE="ccache riscv64-linux-gnu-"
+else
+    export CROSS_COMPILE="riscv64-linux-gnu-"
+fi
 
 # Project root directory
 export RISCV_QEMU_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
