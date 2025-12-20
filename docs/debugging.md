@@ -100,3 +100,32 @@ This is a known issue when switching modes (e.g., typically 32-bit to 64-bit or 
 
 ### Source Code Not Found
 Ensure you are running GDB from the project root (`miles-qemu/`). GDB looks for source files relative to the compilation directory.
+
+## VS Code / IDE Debugging
+
+This project includes configuration files for debugging directly within VS Code (or compatible editors like Antigravity).
+
+### Setup
+1.  Ensure the "C/C++" extension is installed.
+2.  Open the project root in the editor.
+
+### Debugging Steps
+1.  **Start QEMU**: Run the Task **"Launch QEMU (Debug Mode)"**.
+    *   Command Palette (`Ctrl+Shift+P`) -> `Tasks: Run Task` -> `Launch QEMU (Debug Mode)`
+    *   This starts QEMU in the background, paused and waiting for GDB.
+
+2.  **Start Debugger**: Run the Launch Configuration **"(gdb) Attach to QEMU"**.
+    *   Press `F5` or go to the Run and Debug sidebar and click the play button.
+    *   This connects GDB, loads all symbols (via `scripts/debug.gdb`), and pauses at `_start` (SPL entry).
+
+### U-Boot Relocation in IDE
+To handle U-Boot relocation within the IDE:
+1.  In the **Debug Console** (bottom panel), you can type GDB commands directly (prefix with `-exec` if needed, but the console often accepts them directly).
+2.  **Workflow**:
+    *   Use the generic **Breakpoints** view to manage standard breakpoints.
+    *   For the relocation step:
+        *   Execute `-exec break_uboot_proper` in the Debug Console.
+        *   Resume (`F5`) until hit.
+        *   Execute `-exec uboot_reloc` in the Debug Console.
+        *   Set breakpoint at `board_init_r`.
+        *   Resume (`F5`).
