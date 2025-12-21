@@ -5,10 +5,14 @@
 # RISC-V target configuration
 export ARCH=riscv
 # Toolchain
+export CROSS_COMPILE="riscv64-linux-gnu-"
+
+# ccache support (use via CC variable in build scripts that support it)
 if command -v ccache &> /dev/null; then
-    export CROSS_COMPILE="ccache riscv64-linux-gnu-"
+    export USE_CCACHE=1
+    export CC="ccache ${CROSS_COMPILE}gcc"
 else
-    export CROSS_COMPILE="riscv64-linux-gnu-"
+    export USE_CCACHE=0
 fi
 
 # Project root directory

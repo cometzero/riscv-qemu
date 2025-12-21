@@ -49,6 +49,7 @@ echo "[Linux] Configuring qemu_rv64_craft_defconfig..."
 make \
     ARCH=${ARCH} \
     CROSS_COMPILE=${CROSS_COMPILE} \
+    CC="${CC:-${CROSS_COMPILE}gcc}" \
     O="${LINUX_BUILD}" \
     qemu_rv64_craft_defconfig \
     >> "${LOG_FILE}" 2>&1
@@ -66,6 +67,7 @@ if [ "${OPTEE_MODE}" = true ]; then
         make \
             ARCH=${ARCH} \
             CROSS_COMPILE=${CROSS_COMPILE} \
+            CC="${CC:-${CROSS_COMPILE}gcc}" \
             O="${LINUX_BUILD}" \
             olddefconfig \
             >> "${LOG_FILE}" 2>&1
@@ -79,6 +81,7 @@ echo "[Linux] Building Image with ${NPROC} jobs..."
 make \
     ARCH=${ARCH} \
     CROSS_COMPILE=${CROSS_COMPILE} \
+    CC="${CC:-${CROSS_COMPILE}gcc}" \
     O="${LINUX_BUILD}" \
     Image \
     -j${NPROC} \

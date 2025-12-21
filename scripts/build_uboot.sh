@@ -42,6 +42,7 @@ echo "[U-Boot] Configuring qemu_rv64_craft_defconfig..."
 # cp "${CONFIGS_DIR}/u-boot/qemu_rv64_craft_defconfig" "${UBOOT_SRC}/configs/"
 make \
     CROSS_COMPILE=${CROSS_COMPILE} \
+    CC="${CC:-${CROSS_COMPILE}gcc}" \
     O="${UBOOT_BUILD}" \
     qemu_rv64_craft_defconfig \
     >> "${LOG_FILE}" 2>&1
@@ -51,13 +52,14 @@ BOOT_CFG="${CONFIGS_DIR}/u-boot/qemu_boot.cfg"
 if [ -f "${BOOT_CFG}" ]; then
     echo "[U-Boot] Applying custom boot config..."
     cat "${BOOT_CFG}" >> "${UBOOT_BUILD}/.config"
-    make CROSS_COMPILE=${CROSS_COMPILE} O="${UBOOT_BUILD}" olddefconfig >> "${LOG_FILE}" 2>&1
+    make CROSS_COMPILE=${CROSS_COMPILE} CC="${CC:-${CROSS_COMPILE}gcc}" O="${UBOOT_BUILD}" olddefconfig >> "${LOG_FILE}" 2>&1
 fi
 
 # Build U-Boot with OpenSBI for FIT image
 echo "[U-Boot] Building with ${NPROC} jobs..."
 make \
     CROSS_COMPILE=${CROSS_COMPILE} \
+    CC="${CC:-${CROSS_COMPILE}gcc}" \
     O="${UBOOT_BUILD}" \
     OPENSBI="${OPENSBI_FW}" \
     -j${NPROC} \

@@ -17,6 +17,9 @@ mkdir -p "${QEMU_BUILD}" "${LOG_DIR}"
 
 cd "${QEMU_SRC}"
 
+# QEMU must use native compiler, not cross-compiler
+unset CC
+
 # Configure QEMU (only RISC-V softmmu target)
 echo "[QEMU] Configuring..."
 if [ ! -f "${QEMU_BUILD}/config-host.mak" ]; then
