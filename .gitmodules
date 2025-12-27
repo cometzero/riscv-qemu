@@ -1,18 +1,24 @@
 [submodule "sources/qemu"]
 	path = sources/qemu
-	url = https://gitlab.com/qemu-project/qemu.git
+	url = git@github.com:cometzero/qemu.git
+	branch = feature/qemu_boot
 [submodule "sources/u-boot"]
 	path = sources/u-boot
-	url = https://source.denx.de/u-boot/u-boot.git
+	url = git@github.com:cometzero/u-boot.git
+	branch = feature/qemu_boot
 [submodule "sources/opensbi"]
 	path = sources/opensbi
-	url = https://github.com/riscv-software-src/opensbi.git
+	url = git@github.com:cometzero/opensbi.git
+	branch = feature/qemu_boot
 [submodule "sources/linux"]
 	path = sources/linux
-	url = https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+	url = git@github.com:cometzero/linux.git
+	branch = feature/qemu_boot
 [submodule "sources/buildroot"]
 	path = sources/buildroot
-	url = https://git.buildroot.net/buildroot
+	url = git@github.com:cometzero/buildroot.git
+	branch = feature/qemu_boot
 [submodule "sources/optee_os"]
 	path = sources/optee_os
-	url = https://github.com/OP-TEE/optee_os.git
+	url = git@github.com:cometzero/optee_os.git
+	branch = feature/qemu_boot
