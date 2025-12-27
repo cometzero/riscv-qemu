@@ -103,14 +103,8 @@ BOOT_IMG_SIZE=64  # MB
 dd if=/dev/zero of="${BOOT_IMG}" bs=1M count=${BOOT_IMG_SIZE} 2>/dev/null
 mkfs.vfat -F 32 "${BOOT_IMG}" >/dev/null
 
-# Mount and copy files
-BOOT_MNT=$(mktemp -d)
-sudo mount -o loop "${BOOT_IMG}" "${BOOT_MNT}"
-sudo cp "${KERNEL}" "${BOOT_MNT}/Image"
-sudo cp "${INITRD}" "${BOOT_MNT}/initrd.img"
-
-# Create boot script for U-Boot
-cat << 'BOOTSCR' | sudo tee "${BOOT_MNT}/boot.cmd" > /dev/null
+# Prepare boot files locally
+cat << 'BOOTSCR' > "${BUILD_DIR}/boot.cmd"
 echo "Loading kernel from virtio disk..."
 load virtio 0:0 0x84000000 Image
 load virtio 0:0 0x88000000 initrd.img
@@ -118,13 +112,19 @@ setenv bootargs console=ttyS0 earlycon=sbi
 booti 0x84000000 0x88000000:${filesize} ${fdtcontroladdr}
 BOOTSCR
 
-# Create compiled boot script
-mkimage -A riscv -T script -C none -d "${BOOT_MNT}/boot.cmd" "${BOOT_MNT}/boot.scr" 2>/dev/null || \
-    sudo cp "${BOOT_MNT}/boot.cmd" "${BOOT_MNT}/boot.scr"
+# Create compiled boot script or use text version if mkimage missing
+if command -v mkimage >/dev/null 2>&1; then
+    mkimage -A riscv -T script -C none -d "${BUILD_DIR}/boot.cmd" "${BUILD_DIR}/boot.scr"
+else
+    echo "WARNING: mkimage not found, using text boot script"
+    cp "${BUILD_DIR}/boot.cmd" "${BUILD_DIR}/boot.scr"
+fi
 
-sudo sync
-sudo umount "${BOOT_MNT}"
-rmdir "${BOOT_MNT}"
+# Copy files to proper locations in FAT image using mcopy (no sudo needed)
+# -i specifies the image file, :: specifies path inside the FAT image
+mcopy -i "${BOOT_IMG}" "${KERNEL}" ::Image
+mcopy -i "${BOOT_IMG}" "${INITRD}" ::initrd.img
+mcopy -i "${BOOT_IMG}" "${BUILD_DIR}/boot.scr" ::boot.scr
 
 echo "Starting QEMU..."
 echo "Exit: Ctrl+A then X"
