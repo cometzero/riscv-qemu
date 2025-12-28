@@ -1,6 +1,5 @@
 #!/bin/bash
 # Run QEMU with RISC-V virt machine and full boot chain
-# Usage: run_qemu.sh [--optee]
 # Boot flow: U-Boot SPL → OpenSBI → U-Boot proper → Linux Kernel → Buildroot
 set -euo pipefail
 
@@ -8,21 +7,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/env.sh"
 
 # Parse arguments
-OPTEE_MODE=false
 DEBUG_ARGS=""
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --optee)
-            OPTEE_MODE=true
-            shift
-            ;;
         --debug)
             DEBUG_ARGS="-S -s"
             shift
             ;;
         --help|-h)
-            echo "Usage: $0 [--optee] [--debug]"
-            echo "  --optee  Boot with OP-TEE support"
+            echo "Usage: $0 [--debug]"
             echo "  --debug  Enable QEMU GDB stub (-S -s)"
             exit 0
             ;;
@@ -54,21 +47,13 @@ SMP="2"
 FIT_ADDR="0x80200000"
 
 echo "=== RISC-V QEMU Boot ==="
-if [ "${OPTEE_MODE}" = true ]; then
-    echo "Boot Flow: U-Boot SPL → OpenSBI (OP-TEE) → U-Boot proper → Linux (TEE) → Buildroot"
-    echo "Mode: OP-TEE enabled"
-else
-    echo "Boot Flow: U-Boot SPL → OpenSBI → U-Boot proper → Linux → Buildroot"
-fi
+echo "Boot Flow: U-Boot SPL → OpenSBI → U-Boot proper → Linux → Buildroot"
 echo ""
 echo "QEMU:   ${QEMU_BIN}"
 echo "SPL:    ${SPL_BIN}"
 echo "FIT:    ${FIT_BIN}"
 echo "Kernel: ${KERNEL}"
 echo "Initrd: ${INITRD}"
-if [ "${OPTEE_MODE}" = true ]; then
-    echo "OP-TEE: ${BUILD_DIR}/optee/core/tee.bin"
-fi
 echo ""
 
 # Check files exist
@@ -79,21 +64,9 @@ missing=""
 [ ! -f "${KERNEL}" ] && missing="${missing} Kernel"
 [ ! -f "${INITRD}" ] && missing="${missing} Initrd"
 
-if [ "${OPTEE_MODE}" = true ]; then
-    OPTEE_BIN="${BUILD_DIR}/optee/core/tee.bin"
-    if [ ! -f "${OPTEE_BIN}" ]; then
-        echo "WARNING: OP-TEE binary not found at ${OPTEE_BIN}"
-        echo "OP-TEE features may not work. Run: ./scripts/build_all.sh --optee"
-    fi
-fi
-
 if [ -n "${missing}" ]; then
     echo "ERROR: Missing components:${missing}"
-    if [ "${OPTEE_MODE}" = true ]; then
-        echo "Run ./scripts/build_all.sh --optee first."
-    else
-        echo "Run ./scripts/build_all.sh first."
-    fi
+    echo "Run ./scripts/build_all.sh first."
     exit 1
 fi
 
@@ -130,31 +103,6 @@ echo "Starting QEMU..."
 echo "Exit: Ctrl+A then X"
 echo ""
 
-# Additional QEMU options for OP-TEE
-QEMU_EXTRA_ARGS=""
-DTB_ARG=""
-
-if [ "${OPTEE_MODE}" = true ]; then
-    # OP-TEE mode configuration
-    MEMORY="1G"
-    
-    # Note: OpenSBI is now built with FW_FDT_PATH pointing to config/qemu_rv64_craft.dts
-    # So we don't need to pass -dtb to QEMU, OpenSBI uses the built-in FDT.
-    echo "Using OpenSBI with built-in FDT (qemu_rv64_craft.dtb)"
-    DTB_ARG=""
-    
-    # Load OP-TEE binary at its expected address (0xF1000000)
-    OPTEE_BIN="${BUILD_DIR}/optee/core/tee.bin"
-    OPTEE_ADDR="0xF1000000"
-    
-    if [ -f "${OPTEE_BIN}" ]; then
-        echo "Loading OP-TEE at ${OPTEE_ADDR}"
-        QEMU_EXTRA_ARGS="-device loader,file=${OPTEE_BIN},addr=${OPTEE_ADDR}"
-    else
-        echo "WARNING: OP-TEE binary not found at ${OPTEE_BIN}"
-    fi
-fi
-
 exec "${QEMU_BIN}" \
     -M ${MACHINE} \
     -m ${MEMORY} \
@@ -162,8 +110,6 @@ exec "${QEMU_BIN}" \
     -nographic \
     -bios "${SPL_BIN}" \
     -device loader,file="${FIT_BIN}",addr=${FIT_ADDR} \
-    ${DTB_ARG} \
-    ${QEMU_EXTRA_ARGS} \
     -drive file="${BOOT_IMG}",format=raw,if=none,id=hd0 \
     -device virtio-blk-device,drive=hd0 \
     -netdev user,id=net0 \

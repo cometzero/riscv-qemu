@@ -16,10 +16,7 @@ add-symbol-file build/opensbi/platform/generic/firmware/fw_dynamic.elf
 # 3. U-Boot Proper (Initial Load Address)
 add-symbol-file build/u-boot/u-boot
 
-# 4. OP-TEE (if used)
-add-symbol-file build/optee/core/tee.elf
-
-# 5. Linux Kernel
+# 4. Linux Kernel
 add-symbol-file build/linux/vmlinux
 
 # Initial setup
@@ -152,7 +149,6 @@ echo Symbols loaded for:\n
 echo  - SPL (0x80000000)\n
 echo  - OpenSBI\n
 echo  - U-Boot Proper\n
-echo  - OP-TEE\n
 echo  - Linux Kernel\n
 echo \n
 echo New Command: uboot_reloc\n

@@ -1,22 +1,16 @@
 #!/bin/bash
 # Build OpenSBI firmware for RISC-V generic platform
-# Usage: build_opensbi.sh [--optee]
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/env.sh"
 
 # Parse arguments
-OPTEE_MODE=false
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --optee)
-            OPTEE_MODE=true
-            shift
-            ;;
         --help|-h)
-            echo "Usage: $0 [--optee]"
-            echo "  --optee  Build OpenSBI with OP-TEE SPD support"
+            echo "Usage: $0"
+            echo "  Build OpenSBI firmware for RISC-V QEMU"
             exit 0
             ;;
         *)
@@ -32,9 +26,6 @@ LOG_FILE="${LOG_DIR}/${COMPONENT}-$(date +%Y%m%d-%H%M%S).log"
 echo "=== Building OpenSBI ==="
 echo "Source: ${OPENSBI_SRC}"
 echo "Output: ${OPENSBI_BUILD}"
-if [ "${OPTEE_MODE}" = true ]; then
-    echo "Mode: OP-TEE SPD enabled"
-fi
 echo "Log: ${LOG_FILE}"
 
 mkdir -p "${OPENSBI_BUILD}" "${LOG_DIR}"
@@ -57,32 +48,14 @@ else
     exit 1
 fi
 
-if [ "${OPTEE_MODE}" = true ]; then
-    # Check if OP-TEE binary exists
-    OPTEE_BIN="${BUILD_DIR}/optee/core/tee.bin"
-    if [ ! -f "${OPTEE_BIN}" ]; then
-        echo "[OpenSBI] WARNING: OP-TEE binary not found at ${OPTEE_BIN}"
-        echo "[OpenSBI] Building without OP-TEE payload (run build_optee.sh first)"
-    fi
-    
-    # Build with OP-TEE SPD
-    make \
-        PLATFORM=generic \
-        CROSS_COMPILE=${CROSS_COMPILE} \
-        FW_FDT_PATH="${DTB_FILE}" \
-        O="${OPENSBI_BUILD}" \
-        -j${NPROC} \
-        >> "${LOG_FILE}" 2>&1
-else
-    # Standard build with Custom FDT
-    make \
-        PLATFORM=generic \
-        CROSS_COMPILE=${CROSS_COMPILE} \
-        FW_FDT_PATH="${DTB_FILE}" \
-        O="${OPENSBI_BUILD}" \
-        -j${NPROC} \
-        >> "${LOG_FILE}" 2>&1
-fi
+# Standard build with Custom FDT
+make \
+    PLATFORM=generic \
+    CROSS_COMPILE=${CROSS_COMPILE} \
+    FW_FDT_PATH="${DTB_FILE}" \
+    O="${OPENSBI_BUILD}" \
+    -j${NPROC} \
+    >> "${LOG_FILE}" 2>&1
 
 echo "[OpenSBI] Build complete!"
 echo "Firmware: ${OPENSBI_BUILD}/platform/generic/firmware/fw_dynamic.bin"
