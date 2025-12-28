@@ -13,16 +13,16 @@
                 {
                     "pattern": [
                         {
-                            "regexp": ".",
+                            "regexp": "^$",
                             "file": 1,
-                            "location": 2,
-                            "message": 3
+                            "line": 1,
+                            "message": 1
                         }
                     ],
                     "background": {
                         "activeOnStart": true,
-                        "beginsPattern": "Starting QEMU...",
-                        "endsPattern": "Exit: Ctrl\\+A then X"
+                        "beginsPattern": "^Starting QEMU\\.\\.\\.$",
+                        "endsPattern": "^Exit: Ctrl\\+A then X$"
                     }
                 }
             ],
