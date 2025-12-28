@@ -52,6 +52,7 @@ fi
 make \
     PLATFORM=generic \
     CROSS_COMPILE=${CROSS_COMPILE} \
+    CC="${CC:-${CROSS_COMPILE}gcc}" \
     FW_FDT_PATH="${DTB_FILE}" \
     O="${OPENSBI_BUILD}" \
     -j${NPROC} \
