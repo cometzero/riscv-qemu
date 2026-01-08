@@ -22,10 +22,10 @@ python3 test/run_boot_test.py
 The test verifies these patterns in the boot log:
 
 1. `U-Boot SPL` - SPL started
-2. `OpenSBI v` - OpenSBI initialized
+2. `SBI specification v` - OpenSBI/SBI running (detected via Linux kernel log)
 3. `U-Boot 20` - U-Boot proper running
 4. `Linux version` - Kernel booting
-5. `buildroot login:` - Userspace ready
+5. `Welcome to.*Buildroot` or `buildroot login:` - Userspace ready
 
 ## Error Detection
 

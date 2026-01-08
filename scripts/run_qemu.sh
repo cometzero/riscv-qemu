@@ -40,11 +40,19 @@ INITRD="${ROOTFS_BUILD}/images/rootfs.cpio.gz"
 # Boot disk image
 BOOT_IMG="${BUILD_DIR}/boot.img"
 
-# Configuration
-MACHINE="virt"
-MEMORY="4G"
-SMP="2"
-FIT_ADDR="0x80200000"
+# Load configuration from config file (single source of truth)
+QEMU_CONF="${CONFIGS_DIR}/qemu/run_qemu.conf"
+if [ -f "${QEMU_CONF}" ]; then
+    source "${QEMU_CONF}"
+fi
+
+# Configuration with defaults (can be overridden by run_qemu.conf)
+MACHINE="${QEMU_MACHINE:-virt}"
+MEMORY="${QEMU_MEMORY:-4G}"
+SMP="${QEMU_SMP:-2}"
+FIT_ADDR="${QEMU_FIT_ADDR:-0x80200000}"
+KERNEL_ADDR="${KERNEL_LOAD_ADDR:-0x84000000}"
+INITRD_ADDR="${INITRD_LOAD_ADDR:-0x88000000}"
 
 echo "=== RISC-V QEMU Boot ==="
 echo "Boot Flow: U-Boot SPL → OpenSBI → U-Boot proper → Linux → Buildroot"
@@ -77,12 +85,12 @@ dd if=/dev/zero of="${BOOT_IMG}" bs=1M count=${BOOT_IMG_SIZE} 2>/dev/null
 mkfs.vfat -F 32 "${BOOT_IMG}" >/dev/null
 
 # Prepare boot files locally
-cat << 'BOOTSCR' > "${BUILD_DIR}/boot.cmd"
+cat << BOOTSCR > "${BUILD_DIR}/boot.cmd"
 echo "Loading kernel from virtio disk..."
-load virtio 0:0 0x84000000 Image
-load virtio 0:0 0x88000000 initrd.img
+load virtio 0:0 ${KERNEL_ADDR} Image
+load virtio 0:0 ${INITRD_ADDR} initrd.img
 setenv bootargs console=ttyS0 earlycon=sbi
-booti 0x84000000 0x88000000:${filesize} ${fdtcontroladdr}
+booti ${KERNEL_ADDR} ${INITRD_ADDR}:\${filesize} \${fdtcontroladdr}
 BOOTSCR
 
 # Create compiled boot script or use text version if mkimage missing

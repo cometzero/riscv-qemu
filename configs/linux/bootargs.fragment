@@ -1,8 +1,12 @@
 # Linux kernel bootargs configuration fragment
 # Merged into kernel config during build
+#
+# Policy: Use CMDLINE_FROM_BOOTLOADER to allow U-Boot to set bootargs at runtime.
+# This enables experimentation without kernel rebuilds.
 
-# Console configuration
+# Default console (used if bootloader doesn't provide bootargs)
 CONFIG_CMDLINE="console=ttyS0 earlycon=sbi"
 
-# Built-in command line
-CONFIG_CMDLINE_FORCE=y
+# Accept bootargs from U-Boot (allows runtime modification via boot.scr)
+# CONFIG_CMDLINE_FORCE is NOT set - bootloader args take precedence
+CONFIG_CMDLINE_EXTEND=y
