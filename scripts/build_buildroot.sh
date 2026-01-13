@@ -5,12 +5,39 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/env.sh"
 
+# Configuration options
+DO_MENUCONFIG=false
+DO_DEFCONFIG=false
+DO_CLEAN=false
+
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --menuconfig)
+            DO_MENUCONFIG=true
+            shift
+            ;;
+        --defconfig)
+            DO_DEFCONFIG=true
+            shift
+            ;;
+        --clean)
+            DO_CLEAN=true
+            shift
+            ;;
         --help|-h)
-            echo "Usage: $0"
+            echo "Usage: $0 [OPTIONS]"
             echo "  Build Buildroot rootfs for RISC-V QEMU"
+            echo ""
+            echo "Options:"
+            echo "  --menuconfig  Run menuconfig only (exit after)"
+            echo "  --defconfig   Force create default config (even if .config exists)"
+            echo "  --clean       Run make clean before building"
+            echo "  -h, --help    Show this help message"
+            echo ""
+            echo "Default behavior:"
+            echo "  - If .config exists, skip creating default config"
+            echo "  - If .config does not exist, create default config"
             exit 0
             ;;
         *)
@@ -32,8 +59,27 @@ mkdir -p "${ROOTFS_BUILD}" "${LOG_DIR}"
 
 cd "${BUILDROOT_SRC}"
 
-# Create base config
-cat > "${ROOTFS_BUILD}/.config" << 'EOF'
+# Clean build if requested
+if [ "${DO_CLEAN}" = true ]; then
+    echo "[Buildroot] Running make clean..."
+    make O="${ROOTFS_BUILD}" clean >> "${LOG_FILE}" 2>&1
+fi
+
+# Determine if we need to create config
+RUN_DEFCONFIG=false
+if [ "${DO_DEFCONFIG}" = true ]; then
+    RUN_DEFCONFIG=true
+    echo "[Buildroot] Force defconfig requested..."
+elif [ ! -f "${ROOTFS_BUILD}/.config" ]; then
+    RUN_DEFCONFIG=true
+    echo "[Buildroot] No .config found, creating default config..."
+else
+    echo "[Buildroot] Using existing .config..."
+fi
+
+# Create base config if needed
+if [ "${RUN_DEFCONFIG}" = true ]; then
+    cat > "${ROOTFS_BUILD}/.config" << 'EOF'
 # Target architecture
 BR2_riscv=y
 BR2_RISCV_64=y
@@ -63,8 +109,17 @@ BR2_TARGET_ROOTFS_CPIO_GZIP=y
 BR2_LINUX_KERNEL=n
 EOF
 
-echo "[Buildroot] Using minimal external toolchain config..."
-make O="${ROOTFS_BUILD}" olddefconfig >> "${LOG_FILE}" 2>&1
+    echo "[Buildroot] Running olddefconfig..."
+    make O="${ROOTFS_BUILD}" olddefconfig >> "${LOG_FILE}" 2>&1
+fi
+
+# Menuconfig mode
+if [ "${DO_MENUCONFIG}" = true ]; then
+    echo "[Buildroot] Running menuconfig..."
+    make O="${ROOTFS_BUILD}" menuconfig
+    echo "[Buildroot] menuconfig complete. Exiting."
+    exit 0
+fi
 
 # Build rootfs
 echo "[Buildroot] Building with ${NPROC} jobs..."
