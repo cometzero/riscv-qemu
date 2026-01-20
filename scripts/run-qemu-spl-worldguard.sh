@@ -1,71 +1,49 @@
 #!/bin/bash
-# Script to run QEMU with U-Boot SPL boot chain and WorldGuard extension
-# Boot sequence: SPL → OpenSBI → U-Boot Proper → Linux
+set -euo pipefail
 
-set -e
-
-# Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+source "${SCRIPT_DIR}/env.sh"
 
-# Source the toolchain environment
-source "${SCRIPT_DIR}/toolchain-env.sh"
+QEMU_BIN="${QEMU_SRC}/build/qemu-system-riscv64"
+SPL_BIN="${UBOOT_BUILD}/spl/u-boot-spl.bin"
+KERNEL="${LINUX_BUILD}/arch/riscv/boot/Image"
+DTB_SRC="${RISCV_QEMU_ROOT}/dts/qemu-virt-worldguard.dts"
+DTB_FILE="${BUILD_DIR}/dts/qemu_rv64_craft.dtb"
 
-# Paths to components
-QEMU_BIN="${PROJECT_ROOT}/build/qemu/install/bin/qemu-system-riscv64"
-SPL_BIN="${PROJECT_ROOT}/build/u-boot/spl/u-boot-spl.bin"
-UBOOT_BIN="${PROJECT_ROOT}/build/u-boot/u-boot.bin"
-KERNEL_IMAGE="${PROJECT_ROOT}/build/linux/arch/riscv/boot/Image"
-ROOTFS_IMAGE="${PROJECT_ROOT}/build/buildroot/images/sdcard.img"
-DTB_FILE="${PROJECT_ROOT}/dts/qemu-virt-worldguard.dtb"
-
-# Check if components exist
-check_file() {
-    if [ ! -f "$1" ]; then
-        echo "ERROR: Component not found: $1"
-        echo "Please build all components first using ./scripts/build-all.sh or individual scripts."
-        exit 1
-    fi
-}
-
-echo "Checking components..."
-check_file "${QEMU_BIN}"
-check_file "${SPL_BIN}"
-check_file "${KERNEL_IMAGE}"
-
-# Optional: Check for DTB (use default if not found)
-if [ ! -f "${DTB_FILE}" ]; then
-    echo "WARNING: Custom DTB not found: ${DTB_FILE}"
-    echo "Using QEMU default DTB (no WorldGuard nodes)"
-    DTB_OPTION=""
-else
-    DTB_OPTION="-dtb ${DTB_FILE}"
+if ! command -v dtc >/dev/null 2>&1; then
+    echo "ERROR: dtc not found"
+    exit 1
 fi
 
-echo "========================================="
-echo "Starting RISC-V QEMU Boot Chain (SPL)"
-echo "WorldGuard: ENABLED"
-echo "========================================="
-echo "QEMU:      ${QEMU_BIN}"
-echo "SPL:       ${SPL_BIN}"
-echo "U-Boot:    ${UBOOT_BIN}"
-echo "Kernel:    ${KERNEL_IMAGE}"
-echo "DTB:       ${DTB_FILE:-QEMU default}"
-echo "========================================="
-echo ""
-echo "Boot sequence: SPL → OpenSBI → U-Boot → Linux"
-echo "Press Ctrl+A, X to exit QEMU"
+mkdir -p "$(dirname "${DTB_FILE}")"
+if [ ! -f "${DTB_FILE}" ] || [ "${DTB_SRC}" -nt "${DTB_FILE}" ]; then
+    dtc -I dts -O dtb -o "${DTB_FILE}" "${DTB_SRC}"
+fi
+
+missing=""
+[ ! -f "${QEMU_BIN}" ] && missing="${missing} QEMU"
+[ ! -f "${SPL_BIN}" ] && missing="${missing} SPL"
+[ ! -f "${KERNEL}" ] && missing="${missing} Kernel"
+[ ! -f "${DTB_FILE}" ] && missing="${missing} DTB"
+
+if [ -n "${missing}" ]; then
+    echo "ERROR: Missing components:${missing}"
+    echo "Run ./scripts/build_all.sh first."
+    exit 1
+fi
+
+echo "=== RISC-V QEMU Boot (SPL, WorldGuard) ==="
+echo "QEMU:   ${QEMU_BIN}"
+echo "SPL:    ${SPL_BIN}"
+echo "Kernel: ${KERNEL}"
+echo "DTB:    ${DTB_FILE}"
 echo ""
 
-# Run QEMU with SPL as bios
-# -M virt,wg=on: Enable WorldGuard extension
-# -bios: Use U-Boot SPL as first-stage bootloader
-# SPL will load OpenSBI, which loads U-Boot Proper, which boots Linux
-"${QEMU_BIN}" \
+exec "${QEMU_BIN}" \
     -M virt,wg=on \
-    -m 2G \
-    -smp 4 \
+    -m ${QEMU_MEMORY:-4G} \
+    -smp ${QEMU_SMP:-2} \
     -nographic \
     -bios "${SPL_BIN}" \
-    -kernel "${KERNEL_IMAGE}" \
-    ${DTB_OPTION}
+    -kernel "${KERNEL}" \
+    -dtb "${DTB_FILE}"
