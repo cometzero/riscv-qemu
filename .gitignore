@@ -23,5 +23,14 @@ Thumbs.db
 *.tmp
 *.log
 *.dtb
+*.o
+*.elf
 buildroot/
 optee_build/
+
+# Local env
+.venv/
+
+# Local DTS/spec working copies
+dts/
+worldguard_rvia_spec.md
