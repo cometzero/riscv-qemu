@@ -53,6 +53,7 @@ SMP="${QEMU_SMP:-2}"
 FIT_ADDR="${QEMU_FIT_ADDR:-0x80200000}"
 KERNEL_ADDR="${KERNEL_LOAD_ADDR:-0x84000000}"
 INITRD_ADDR="${INITRD_LOAD_ADDR:-0x88000000}"
+DTB_FILE="${QEMU_DTB:-}"
 
 echo "=== RISC-V QEMU Boot ==="
 echo "Boot Flow: U-Boot SPL → OpenSBI → U-Boot proper → Linux → Buildroot"
@@ -62,6 +63,7 @@ echo "SPL:    ${SPL_BIN}"
 echo "FIT:    ${FIT_BIN}"
 echo "Kernel: ${KERNEL}"
 echo "Initrd: ${INITRD}"
+echo "DTB:    ${DTB_FILE:-none}"
 echo ""
 
 # Check files exist
@@ -76,6 +78,15 @@ if [ -n "${missing}" ]; then
     echo "ERROR: Missing components:${missing}"
     echo "Run ./scripts/build_all.sh first."
     exit 1
+fi
+
+DTB_OPTION=""
+if [ -n "${DTB_FILE}" ]; then
+    if [ ! -f "${DTB_FILE}" ]; then
+        echo "ERROR: Missing DTB: ${DTB_FILE}"
+        exit 1
+    fi
+    DTB_OPTION="-dtb ${DTB_FILE}"
 fi
 
 # Create boot FAT image with kernel and initramfs
@@ -122,4 +133,5 @@ exec "${QEMU_BIN}" \
     -device virtio-blk-device,drive=hd0 \
     -netdev user,id=net0 \
     -device virtio-net-device,netdev=net0 \
+    ${DTB_OPTION} \
     ${DEBUG_ARGS}

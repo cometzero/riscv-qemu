@@ -35,25 +35,22 @@ cd "${OPENSBI_SRC}"
 # Build OpenSBI with generic platform
 echo "[OpenSBI] Building with ${NPROC} jobs..."
 
-# Compile Custom DTS
-DTS_FILE="${OPENSBI_SRC}/platform/generic/qemu_rv64_craft.dts"
-DTB_FILE="${BUILD_DIR}/dts/qemu_rv64_craft.dtb"
-mkdir -p "$(dirname "${DTB_FILE}")"
-
-if [ -f "${DTS_FILE}" ]; then
-    echo "[OpenSBI] Compiling custom DTB: ${DTS_FILE}"
-    dtc -I dts -O dtb -o "${DTB_FILE}" "${DTS_FILE}"
-else
-    echo "[OpenSBI] ERROR: Custom DTS not found at ${DTS_FILE}"
-    exit 1
+FDT_ARG=""
+if [ -n "${OPENSBI_FDT_PATH:-}" ]; then
+    if [ ! -f "${OPENSBI_FDT_PATH}" ]; then
+        echo "[OpenSBI] ERROR: Custom FDT not found at ${OPENSBI_FDT_PATH}"
+        exit 1
+    fi
+    FDT_ARG="FW_FDT_PATH=${OPENSBI_FDT_PATH}"
 fi
 
-# Standard build with Custom FDT
+make clean O="${OPENSBI_BUILD}" >> "${LOG_FILE}" 2>&1
+
 make \
     PLATFORM=generic \
     CROSS_COMPILE=${CROSS_COMPILE} \
     CC="${CC:-${CROSS_COMPILE}gcc}" \
-    FW_FDT_PATH="${DTB_FILE}" \
+    ${FDT_ARG} \
     O="${OPENSBI_BUILD}" \
     -j${NPROC} \
     >> "${LOG_FILE}" 2>&1
