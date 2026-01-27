@@ -7,8 +7,12 @@ source "${SCRIPT_DIR}/env.sh"
 QEMU_BIN="${QEMU_SRC}/build/qemu-system-riscv64"
 SPL_BIN="${UBOOT_BUILD}/spl/u-boot-spl.bin"
 KERNEL="${LINUX_BUILD}/arch/riscv/boot/Image"
-DTB_SRC="${RISCV_QEMU_ROOT}/dts/qemu-virt-worldguard.dts"
+DTB_SRC="${RISCV_QEMU_ROOT}/configs/dts/qemu-virt-worldguard.dts"
 DTB_FILE="${BUILD_DIR}/dts/qemu_rv64_craft.dtb"
+
+if [ ! -f "${DTB_SRC}" ] && [ -f "${RISCV_QEMU_ROOT}/dts/qemu-virt-worldguard.dts" ]; then
+    DTB_SRC="${RISCV_QEMU_ROOT}/dts/qemu-virt-worldguard.dts"
+fi
 
 if ! command -v dtc >/dev/null 2>&1; then
     echo "ERROR: dtc not found"

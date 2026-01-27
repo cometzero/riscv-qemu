@@ -10,8 +10,12 @@ FIT_BIN="${UBOOT_BUILD}/u-boot.itb"
 KERNEL="${LINUX_BUILD}/arch/riscv/boot/Image"
 INITRD="${ROOTFS_BUILD}/images/rootfs.cpio.gz"
 BOOT_IMG="${BUILD_DIR}/boot.img"
-DTB_SRC="${RISCV_QEMU_ROOT}/dts/qemu-virt-worldguard.dts"
+DTB_SRC="${RISCV_QEMU_ROOT}/configs/dts/qemu-virt-worldguard.dts"
 DTB_FILE="${BUILD_DIR}/dts/qemu_rv64_craft.dtb"
+
+if [ ! -f "${DTB_SRC}" ] && [ -f "${RISCV_QEMU_ROOT}/dts/qemu-virt-worldguard.dts" ]; then
+    DTB_SRC="${RISCV_QEMU_ROOT}/dts/qemu-virt-worldguard.dts"
+fi
 
 if ! command -v dtc >/dev/null 2>&1; then
     echo "ERROR: dtc not found"

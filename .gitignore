@@ -32,5 +32,5 @@ optee_build/
 .venv/
 
 # Local DTS/spec working copies
-dts/
+/dts/
 worldguard_rvia_spec.md
