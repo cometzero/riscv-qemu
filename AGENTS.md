@@ -140,6 +140,13 @@ Patches SHOULD be written in upstreamable style even if not intended for submiss
 └── specs/          # Specification documents (spec-driven development)
 ```
 
+### WorldGuard Reference Docs
+
+**CRITICAL**: For any WorldGuard investigation, architecture search, or implementation, these reference documents MUST be consulted as the primary source of truth before any code changes or research conclusions.
+
+- `docs/worldguard_rvia_spec.md`
+- `docs/WorldGuard-Technical-Paper_v2.4.md`
+
 ### Configuration File Locations
 | Component | File Type | Location |
 |-----------|-----------|----------|
