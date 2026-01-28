@@ -33,4 +33,4 @@ optee_build/
 
 # Local DTS/spec working copies
 /dts/
-worldguard_rvia_spec.md
+/worldguard_rvia_spec.md
