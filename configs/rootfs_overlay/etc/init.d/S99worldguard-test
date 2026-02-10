@@ -1,0 +1,30 @@
+#!/bin/sh
+set -eu
+
+echo "WGTEST: start"
+
+if [ ! -d /proc ]; then
+    echo "WGTEST: FAIL (/proc not mounted)"
+    poweroff -f || true
+    exit 1
+fi
+
+echo "WGTEST: loading S-mode module"
+
+if [ ! -e /root/wg_smode_memtest.ko ]; then
+    echo "WGTEST: FAIL (missing /root/wg_smode_memtest.ko)"
+    poweroff -f || true
+    exit 1
+fi
+
+insmod /root/wg_smode_memtest.ko || {
+    echo "WGTEST: FAIL (insmod wg_smode_memtest.ko failed)"
+    poweroff -f || true
+    exit 1
+}
+
+sleep 1
+
+echo "WGTEST: done (poweroff)"
+
+poweroff -f || true
