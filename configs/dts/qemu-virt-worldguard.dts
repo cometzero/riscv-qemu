@@ -6,6 +6,38 @@
 	compatible = "riscv-virtio";
 	model = "riscv-virtio,qemu";
 
+	reserved-memory {
+		#address-cells = <0x02>;
+		#size-cells = <0x02>;
+		ranges;
+
+		/*
+		 * Keep WorldGuard-inaccessible DRAM ranges out of Linux allocations
+		 * when Linux runs as WID=2 (S-mode).
+		 *
+		 * Do not use "no-map" here.
+		 */
+		wg_resv_w3@a0000000 {
+			/* World 3 region: [0xA8000000, 0xB0000000) */
+			reg = <0x0 0xa8000000 0x0 0x08000000>;
+		};
+
+		/*
+		 * WorldGuard test scratch pages.
+		 *
+		 * Keep these pages out of the Linux buddy allocator so user-space can
+		 * safely write/read them when exercising U-mode WID restrictions.
+		 */
+		wgtest_w2: wgtest-w2@bfff0000 {
+			reg = <0x0 0xbfff0000 0x0 0x1000>;
+			no-map;
+		};
+		wgtest_sh: wgtest-shared@90000000 {
+			reg = <0x0 0x90000000 0x0 0x1000>;
+			no-map;
+		};
+	};
+
 	poweroff {
 		value = <0x5555>;
 		offset = <0x00>;
@@ -30,7 +62,8 @@
 
 	memory@80000000 {
 		device_type = "memory";
-		reg = <0x00 0x80000000 0x00 0x80000000>;
+		/* 1 GiB: [0x80000000, 0xc0000000) covers shared+W3+W2 worlds */
+		reg = <0x00 0x80000000 0x00 0x40000000>;
 	};
 
 	worldguard {
@@ -38,6 +71,7 @@
 		nworlds = <4>;
 		trustedwid = <3>;
 		mwiddeleg = <0x6>;
+		wid-assignment = <3 2 0>;
 		status = "okay";
 	};
 
@@ -45,8 +79,9 @@
 		compatible = "riscv,wgchecker";
 		reg = <0x0 0x6000000 0x0 0x1000>;
 		slots = <
-			0x0 0x80000000 0x0 0x20000000 0xFF 0x1
-			0x0 0xA0000000 0x0 0x10000000 0xC3 0x1
+			/* Shared: keep initrd in shared (QEMU places it at ~kernel+512MiB) */
+			0x0 0x80000000 0x0 0x28000000 0xFF 0x1
+			0x0 0xA8000000 0x0 0x08000000 0xC3 0x1
 			0x0 0xB0000000 0x0 0x10000000 0xF3 0x1
 			0x0 0xC0000000 0x0 0x10000000 0xCF 0x1
 			0x0 0xD0000000 0x0 0x30000000 0xC3 0x1
