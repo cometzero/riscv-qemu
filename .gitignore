@@ -30,6 +30,8 @@ optee_build/
 
 # Local env
 .venv/
+.agents/
+.omx/
 
 # Local DTS/spec working copies
 /dts/
