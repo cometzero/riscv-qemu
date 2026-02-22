@@ -18,7 +18,15 @@ mkdir -p "${QEMU_BUILD}" "${LOG_DIR}"
 cd "${QEMU_SRC}"
 
 # QEMU must use native compiler, not cross-compiler
-unset CC
+if [ "${USE_CCACHE:-0}" = "1" ]; then
+    export CC="ccache gcc"
+    export CXX="ccache g++"
+    echo "[QEMU] ccache enabled (CC='${CC}', CXX='${CXX}')"
+else
+    export CC="gcc"
+    export CXX="g++"
+    echo "[QEMU] ccache not found, using native compiler directly"
+fi
 
 # Configure QEMU (only RISC-V softmmu target)
 echo "[QEMU] Configuring..."
