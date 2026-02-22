@@ -49,6 +49,7 @@ done
 
 COMPONENT="linux"
 LOG_FILE="${LOG_DIR}/${COMPONENT}-$(date +%Y%m%d-%H%M%S).log"
+LINUX_CONFIG_FRAGMENT="${CONFIGS_DIR}/linux/rt_ebpf.fragment"
 
 echo "=== Building Linux Kernel ==="
 echo "Source: ${LINUX_SRC}"
@@ -93,6 +94,28 @@ if [ "${RUN_DEFCONFIG}" = true ]; then
         O="${LINUX_BUILD}" \
         qemu_rv64_craft_defconfig \
         >> "${LOG_FILE}" 2>&1
+fi
+
+# Merge project fragment for PREEMPT_RT + eBPF defaults
+if [ -f "${LINUX_CONFIG_FRAGMENT}" ]; then
+    echo "[Linux] Applying config fragment: ${LINUX_CONFIG_FRAGMENT}"
+    "${LINUX_SRC}/scripts/kconfig/merge_config.sh" \
+        -m \
+        -r \
+        -O "${LINUX_BUILD}" \
+        "${LINUX_BUILD}/.config" \
+        "${LINUX_CONFIG_FRAGMENT}" \
+        >> "${LOG_FILE}" 2>&1
+
+    make \
+        ARCH=${ARCH} \
+        CROSS_COMPILE=${CROSS_COMPILE} \
+        CC="${CC:-${CROSS_COMPILE}gcc}" \
+        O="${LINUX_BUILD}" \
+        olddefconfig \
+        >> "${LOG_FILE}" 2>&1
+else
+    echo "[Linux] WARNING: Missing config fragment ${LINUX_CONFIG_FRAGMENT}"
 fi
 
 # Menuconfig mode
