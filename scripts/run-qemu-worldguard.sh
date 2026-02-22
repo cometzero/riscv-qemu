@@ -58,7 +58,7 @@ mkfs.vfat -F 32 "${BOOT_IMG}" >/dev/null
 cat << BOOTSCR > "${BUILD_DIR}/boot.cmd"
 load virtio 0:0 ${KERNEL_LOAD_ADDR:-0x84000000} Image
 load virtio 0:0 ${INITRD_LOAD_ADDR:-0x88000000} initrd.img
-setenv bootargs console=ttyS0 earlycon=sbi
+setenv bootargs console=ttyS0 earlycon=sbi wgtest=on
 booti ${KERNEL_LOAD_ADDR:-0x84000000} ${INITRD_LOAD_ADDR:-0x88000000}:\${filesize} \${fdtcontroladdr}
 
 BOOTSCR

@@ -1,6 +1,11 @@
 #!/bin/sh
 set -eu
 
+# Run WGTEST only when explicitly requested from worldguard run scripts.
+if ! grep -Eq '(^| )wgtest=on( |$)' /proc/cmdline; then
+    exit 0
+fi
+
 echo "WGTEST: start"
 
 if [ ! -d /proc ]; then

@@ -100,7 +100,7 @@ cat << BOOTSCR > "${BUILD_DIR}/boot.cmd"
 echo "Loading kernel from virtio disk..."
 load virtio 0:0 ${KERNEL_ADDR} Image
 load virtio 0:0 ${INITRD_ADDR} initrd.img
-setenv bootargs console=ttyS0 earlycon=sbi
+setenv bootargs console=ttyS0 earlycon=sbi wgtest=off
 booti ${KERNEL_ADDR} ${INITRD_ADDR}:\${filesize} \${fdtcontroladdr}
 BOOTSCR
 

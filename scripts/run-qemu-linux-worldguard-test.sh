@@ -50,5 +50,5 @@ exec "${QEMU_BIN}" \
     -bios "${OPENSBI_BIN}" \
     -kernel "${KERNEL}" \
     -initrd "${INITRD}" \
-    -append "console=ttyS0 earlycon=sbi keep_bootcon loglevel=8 rdinit=/init" \
+    -append "console=ttyS0 earlycon=sbi keep_bootcon loglevel=8 rdinit=/init wgtest=on" \
     -dtb "${DTB_FILE}"
