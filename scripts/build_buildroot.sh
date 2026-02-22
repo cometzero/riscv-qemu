@@ -49,6 +49,7 @@ done
 
 COMPONENT="buildroot"
 LOG_FILE="${LOG_DIR}/${COMPONENT}-$(date +%Y%m%d-%H%M%S).log"
+BUILDROOT_CONFIG_FRAGMENT="${CONFIGS_DIR}/buildroot/ebpf_tools.fragment"
 
 echo "=== Building Buildroot Rootfs ==="
 echo "Source: ${BUILDROOT_SRC}"
@@ -116,6 +117,21 @@ EOF
 
     echo "[Buildroot] Running olddefconfig..."
     make O="${ROOTFS_BUILD}" olddefconfig >> "${LOG_FILE}" 2>&1
+fi
+
+# Merge project fragment for eBPF tools
+if [ -f "${BUILDROOT_CONFIG_FRAGMENT}" ]; then
+    echo "[Buildroot] Applying config fragment: ${BUILDROOT_CONFIG_FRAGMENT}"
+    "${BUILDROOT_SRC}/support/kconfig/merge_config.sh" \
+        -m \
+        -r \
+        -O "${ROOTFS_BUILD}" \
+        "${ROOTFS_BUILD}/.config" \
+        "${BUILDROOT_CONFIG_FRAGMENT}" \
+        >> "${LOG_FILE}" 2>&1
+    make O="${ROOTFS_BUILD}" olddefconfig >> "${LOG_FILE}" 2>&1
+else
+    echo "[Buildroot] WARNING: Missing config fragment ${BUILDROOT_CONFIG_FRAGMENT}"
 fi
 
 # Menuconfig mode
